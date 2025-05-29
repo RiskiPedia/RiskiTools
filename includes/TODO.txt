@@ -1,0 +1,8 @@
+UserInfo.css should be moved out of gadgets
+
+UserInfo.js
+    Should call FindData whenever a field is updated, and use all fields to search, when possible.
+    maybe make the countries list update depending on what is available on the current page
+
+Dt2 function
+    I think user should input the country and the gender of the table being loaded and maybe these tables should be stored on one page
