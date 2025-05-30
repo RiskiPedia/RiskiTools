@@ -11,20 +11,19 @@
         "RiskiToolsMagic": "RiskiTools.i18n.magic.php"
     },
     "ResourceModules": {
+        "ext.cookie": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.cookie.js"
+            ]
+        },
         "ext.fetchData": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.fetchData.js"
-            ],
-            "targets": [
-                "desktop", "mobile"
             ]
         },
         "ext.userInfoInput": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.userInfoInput.js"
-            ],
-            "targets": [
-                "desktop", "mobile"
             ]
         }
     },

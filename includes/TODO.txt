@@ -1,8 +1,7 @@
-UserInfo.css should be moved out of gadgets
+clean up userInfoInput, split fields into separate modules, put them in a folder together maybe
 
-UserInfo.js
-    Should call FindData whenever a field is updated, and use all fields to search, when possible.
-    maybe make the countries list update depending on what is available on the current page
+set up github RiskiTools fork on the server
 
-Dt2 function
-    I think user should input the country and the gender of the table being loaded and maybe these tables should be stored on one page
+add time span, data type, and column inputss for fetchData to the dt2 header
+
+modify dt2-table2JS to load all tables on one page, possible could use API but probably dont need to

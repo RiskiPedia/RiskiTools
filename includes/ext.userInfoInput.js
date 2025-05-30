@@ -1,17 +1,11 @@
-function getCookie(name) {
-	let cookie = `; ${document.cookie}`;
-	let parts = cookie.split(`; ${name}=`);
-	if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
+mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.fetchData'], function () {
     // Now OOUI is loaded and we can use it
     // Create text input for age
     // load mediawiki api (will be used to generate list of countries)
     var api = new mw.Api();
     let age;
-    if ( getCookie('userAge') ){
-    	age = getCookie('userAge');
+    if ( RT.cookie.getCookie('userAge') ){
+    	age = RT.cookie.getCookie('userAge');
     } else {
     	age = "age";
     }
@@ -26,7 +20,7 @@ mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
 		ageInput.on('change', function (input) {
 			document.cookie = 'userAge=' + input +
 				";expires=Thu, 5 March 2030 12:00:00 UTC; path=/";
-			fetchData();
+			RT.fetchData();
 		});
 	    return ageInput;
 	}
@@ -55,9 +49,9 @@ mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
 		} );
 	
 		// select the option stored in cookie, or default
-		if (getCookie("userGender")){
+		if (RT.cookie.getCookie("userGender")){
 			genderSelect.getMenu().selectItemByData(
-				getCookie("userGender")
+				RT.cookie.getCookie("userGender")
 			);
 		}
 		// custom css for sizing
@@ -79,9 +73,9 @@ mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
 		} );
 		
 		// set placeholder
-		if (getCookie('userCountry')){
+		if (RT.cookie.getCookie('userCountry')){
 			countryInput.getInput().$input.attr( 
-				'placeholder', getCookie('userCountry') );
+				'placeholder', RT.cookie.getCookie('userCountry') );
 		} else {
 			countryInput.getInput().$input.attr( 
 				'placeholder', 'Country' );
@@ -122,12 +116,6 @@ mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
 	    return countryInput;
     }
     
-    // Delete cookies function
-    function deleteCookies(){
-		document.cookie = "userAge=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-		document.cookie = "userGender=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-		document.cookie = "userCountry=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-	}
 		
     // Delete cookies button stuff
 	let delCookies = new OO.ui.ButtonWidget( {
@@ -140,11 +128,11 @@ mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
 		
 	// delete cookies handler
 	delCookies.on('click', function (){
-		deleteCookies();
+		RT.cookie.deleteAllCookies();
 		// set the icon to a checkmark
 		delCookies.setIcon('check');
 		refreshFields();
-		fetchData();
+		RT.fetchData();
 	}); 
 	
 	// info button stuff
@@ -177,7 +165,7 @@ mw.loader.using(['oojs-ui', 'ext.fetchData'], function () {
     $('.ageInput').replaceWith(createAge().$element);
     $('.countryInput').replaceWith(createCountry().$element);
     $('.deleteCookies').replaceWith(delCookiesInfo.$element);
-	fetchData();
+	RT.fetchData();
 });
 
 

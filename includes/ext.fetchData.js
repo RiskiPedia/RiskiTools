@@ -1,9 +1,4 @@
-function getCookie(name) {
-	let cookie = `; ${document.cookie}`;
-	let parts = cookie.split(`; ${name}=`);
-	if (parts.length === 2) return parts.pop().split(';').shift();
-    else return -1;
-}
+mw.loader.load("ext.cookie");
 
 function chanceToHuman ( chance, type, time){
     if (type === "micromorts") {
@@ -58,9 +53,9 @@ function validateClasses(classes, thisSpan) {
 
 }
 
-window.fetchData = function (){
+fetchData = function (){
     // check for user age cookie
-    let user_age = parseInt(getCookie("userAge"), 10);
+    let user_age = parseInt(RT.cookie.getCookie("userAge"), 10);
     // if user age not found, use default of 30
     if (user_age === -1 || user_age === "") user_age = 30;
     // loop through each <span class="fetchData ...">
@@ -123,9 +118,8 @@ window.fetchData = function (){
     
         $(this)[0].innerHTML = 
                     "<span>" + chanceToHuman( found_value, classes[1], classes[3] ) + "</span>";
-    
     });
-
-    
-    
 }
+
+window.RT = window.RT || {};
+window.RT.fetchData = fetchData;
