@@ -25,6 +25,11 @@
             "scripts": [
                 "extensions/RiskiTools/includes/ext.userInfoInput.js"
             ]
+        },
+        "ext.DropDown": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.DropDown.js"
+            ]
         }
     },
     "Hooks": {
