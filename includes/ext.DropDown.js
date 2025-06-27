@@ -24,6 +24,9 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	}
 	// Calculate a reasonable size based on text length
 	// Calculate width: 10 pixels per character for longest label
+	// Note: Grok suggested another way to do this by creating a hidden
+	// canvas, rendering to it, and then getting the width. That might
+	// be better.
 	const maxWidth = Math.max(...Object.keys(data).map(key => key.length * 10));
         // Add padding and dropdown icon (approximate)
         const padding = 20; // OOUI padding
@@ -39,8 +42,10 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
     }
 
     let w = $('.DropDown');
-    // TODO:  This isn't correct if the selector returns multiple DropDowns....
-    const data = JSON.parse(w.text());
-    w.replaceWith(createDropDown(w.data('title'), data).$element);
+    $('.DropDown').each(function(index, element) {
+	const data = JSON.parse(element.textContent);
+	const title = $(element).data('title');
+	$(element).replaceWith(createDropDown(title, data).$element);
+    });
 });
 
