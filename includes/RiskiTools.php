@@ -49,11 +49,11 @@ class RiskiToolsHooks {
      *
      * Use it like this:
      *
-     * {{#DropDown:title=...|table=...|text_column=...|value_column=...}}
+     * {{#DropDown:title=...|table=...|label_column=...|value_column=...}}
      * ... where:
      * title: will be the title of the drop-down box
      * table: the DataTable2 table that defines the options (REQUIRED)
-     * text_column: the column name for the displayed values (optional, first column by default)
+     * label_column: the column name for the displayed values (optional, first column by default)
      * value_column: the column name for the resulting values (optional, second column by default OR first if it is a one-column table)
      *
      */
@@ -68,14 +68,14 @@ class RiskiToolsHooks {
 	$options = RiskiToolsHooks::extractOptions( array_slice( func_get_args(), 1 ) );
 
 	if (!isset($options['table'])) {
-	    return [ 'DropDown: missing table= argument' ];
+	    return [ '<span class="error">DropDown: missing table= argument</span>' ];
         }
 	$table = DataTable2Parser::table2title( $options['table'] );
 	$title = $options['title'] ?? 'Select';
 
 	$alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
 	if (count($alldata) < 1) {
-	   return [ 'DropDown: empty table' ];
+	   return [ '<span class="error">DropDown: empty table</span>' ];
 	}
 	/* We don't care about __pageId, so: */
 	foreach ($alldata as &$item) {
@@ -83,11 +83,18 @@ class RiskiToolsHooks {
 	}
 
 	$column_names = array_keys($alldata[0]);
-	$text_column = $options['text_column'] ?? $column_names[0];
-	$value_column = $options['value_column'] ?? $column_names[1] ?? $text_column;
+	$label_column = $options['label_column'] ?? $column_names[0];
+	$value_column = $options['value_column'] ?? $column_names[1] ?? $label_column;
+	foreach ([$label_column, $value_column] as $c) {
+	   if (!in_array($c, $column_names)) {
+              $errmsg = "DropDown: no column named ".$c;
+	      $errmsg .= " (valid columns are: ".implode(' ',$column_names).")";
+	      return [ '<span class="error">'.$errmsg.'</span>' ];
+	   }   
+        }
 
-	/* $alldata is all the data in the table. We just want two columns, the text_column and value_column, so: */
-	$data = array_combine(array_column($alldata, $text_column), array_column($alldata, $value_column));
+	/* $alldata is all the data in the table. We just want two columns, the label_column and value_column, so: */
+	$data = array_combine(array_column($alldata, $label_column), array_column($alldata, $value_column));
 
 	/** Put a <span> in the output with all the data necessary to create the drop-down.
 	 * See ext.DropDown.js, which does the work of replacing the span with an OO.ui.DropDown
