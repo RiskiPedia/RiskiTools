@@ -77,6 +77,11 @@ class RiskiToolsHooks {
 	if (count($alldata) < 1) {
 	   return [ 'DropDown: empty table' ];
 	}
+	/* We don't care about __pageId, so: */
+	foreach ($alldata as &$item) {
+	    unset($item['__pageId']);
+	}
+
 	$column_names = array_keys($alldata[0]);
 	$text_column = $options['text_column'] ?? $column_names[0];
 	$value_column = $options['value_column'] ?? $column_names[1] ?? $text_column;
@@ -84,9 +89,15 @@ class RiskiToolsHooks {
 	/* $alldata is all the data in the table. We just want two columns, the text_column and value_column, so: */
 	$data = array_combine(array_column($alldata, $text_column), array_column($alldata, $value_column));
 
-	/* Just put a placeholder <span> in the page; it gets replaced by the JavaScript in ext.DropDown.js */
+	/** Put a <span> in the output with all the data necessary to create the drop-down.
+	 * See ext.DropDown.js, which does the work of replacing the span with an OO.ui.DropDown
+	 * The labels and values are given as a JSON-encoded array in the text of the <span>
+	 * Other attributes of the dropdown (just the title for now) are passed as custom
+	 * data- attributes (JQuery has a built-in $(element).data() method that understands
+	 * custom attributes with that name pattern).
+	 */
         $output = "<span class=\"DropDown\" data-title=\"$title\">".json_encode($data)."</span>";
-	$output .= "<pre>".json_encode($data)."</pre>";
+/*	$output .= "<pre>".json_encode($data)."</pre>";  */
 
 	return [ $output,  'noparse' => true, 'isHTML' => false ];
     }
