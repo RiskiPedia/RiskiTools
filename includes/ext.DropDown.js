@@ -23,11 +23,12 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	    );
 	}
 	// Calculate a reasonable size based on text length
-	// Calculate width: 10 pixels per character for longest label
+	// Calculate width: pxPerChar pixels per character for longest label
 	// Note: Grok suggested another way to do this by creating a hidden
 	// canvas, rendering to it, and then getting the width. That might
 	// be better.
-	const maxWidth = Math.max(...Object.keys(data).map(key => key.length * 10));
+	const pxPerChar = 10;
+	const maxWidth = Math.max(...Object.keys(data).map(key => key.length * pxPerChar), title.length * pxPerChar);
         // Add padding and dropdown icon (approximate)
         const padding = 20; // OOUI padding
         const iconWidth = 20; // Dropdown arrow
