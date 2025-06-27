@@ -58,16 +58,35 @@ class RiskiToolsHooks {
      *
      */
     public static function renderDropDown( Parser &$parser) {
+        if ( !ExtensionRegistry::getInstance()->isLoaded( 'DataTable2' ) ) {
+    	    throw new MWException( 'DataTable2 extension is required but not loaded.' );
+	}
+	$dt2 = DataTable2::singleton();
+
         $parser->getOutput()->addModules( ['ext.DropDown'] );
 
 	$options = RiskiToolsHooks::extractOptions( array_slice( func_get_args(), 1 ) );
 
-	if (!array_key_exists('title', $options)) {
-	    $options['title'] = "Select";
+	if (!isset($options['table'])) {
+	    return [ 'DropDown: missing table= argument' ];
         }
-	
+	$table = DataTable2Parser::table2title( $options['table'] );
+	$title = $options['title'] ?? 'Select';
+
+	$alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
+	if (count($alldata) < 1) {
+	   return [ 'DropDown: empty table' ];
+	}
+	$column_names = array_keys($alldata[0]);
+	$text_column = $options['text_column'] ?? $column_names[0];
+	$value_column = $options['value_column'] ?? $column_names[1] ?? $text_column;
+
+	/* $alldata is all the data in the table. We just want two columns, the text_column and value_column, so: */
+	$data = array_combine(array_column($alldata, $text_column), array_column($alldata, $value_column));
+
 	/* Just put a placeholder <span> in the page; it gets replaced by the JavaScript in ext.DropDown.js */
-        $output = "<span class=\"DropDown\" data-loadfrom=\"foo\">Loading...</span>";
+        $output = "<span class=\"DropDown\" data-title=\"$title\">".json_encode($data)."</span>";
+	$output .= "<pre>".json_encode($data)."</pre>";
 
 	return [ $output,  'noparse' => true, 'isHTML' => false ];
     }
