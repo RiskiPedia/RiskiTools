@@ -55,6 +55,7 @@ class RiskiToolsHooks {
      * table: the DataTable2 table that defines the options (REQUIRED)
      * label_column: the column name for the displayed values (optional, first column by default)
      * value_column: the column name for the resulting values (optional, second column by default OR first if it is a one-column table)
+     * cookie_name: the name of the browser cookie to update as values are selected. Defaults to value_column.
      *
      */
     public static function renderDropDown( Parser &$parser) {
@@ -85,6 +86,7 @@ class RiskiToolsHooks {
 	$column_names = array_keys($alldata[0]);
 	$label_column = $options['label_column'] ?? $column_names[0];
 	$value_column = $options['value_column'] ?? $column_names[1] ?? $label_column;
+	$cookie_name = $options['cookie_name'] ?? $value_column;
 	foreach ([$label_column, $value_column] as $c) {
 	   if (!in_array($c, $column_names)) {
               $errmsg = "DropDown: no column named ".$c;
@@ -103,7 +105,10 @@ class RiskiToolsHooks {
 	 * data- attributes (JQuery has a built-in $(element).data() method that understands
 	 * custom attributes with that name pattern).
 	 */
-        $output = "<span class=\"DropDown\" data-title=\"$title\">".json_encode($data)."</span>";
+	$attributes = "data-title=\"$title\"";
+	$attributes .= " data-cookie_name=\"$cookie_name\"";
+	
+        $output = "<span hidden class=\"DropDown\" $attributes >".json_encode($data)."</span>";
 /*	$output .= "<pre>".json_encode($data)."</pre>";  */
 
 	return [ $output,  'noparse' => true, 'isHTML' => false ];

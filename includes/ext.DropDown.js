@@ -2,9 +2,7 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
     // Now OOUI is loaded and we can use it
 
     // Create an OOUI dropdown
-    function createDropDown(title, data){
-        let cookieName = "DropDown";
-
+    function createDropDown(title, cookie_name, data){
 	let menuOptions = Object.keys(data).map(key => new OO.ui.MenuOptionWidget({
             label: key,
 	    data: data[key]
@@ -17,9 +15,9 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	} );
 	
 	// select the option stored in cookie, or default
-	if (RT.cookie.getCookie(cookieName)){
+	if (cookie_name && RT.cookie.getCookie(cookie_name)){
 	    dd.getMenu().selectItemByData(
-		RT.cookie.getCookie(cookieName)
+		RT.cookie.getCookie(cookie_name)
 	    );
 	}
 	// Calculate a reasonable size based on text length
@@ -35,18 +33,21 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
         dd.$element.css('width', `${maxWidth + padding + iconWidth}px`);
 
 	// Update cookie when value changes
-	dd.getMenu().on('select', function (item) {
-	    document.cookie = cookieName + item.getData() + 
-		";expires=Thu, 5 March 2030 12:00:00 UTC; path=/";
-	});
+	if (cookie_name) {
+	    dd.getMenu().on('select', function (item) {
+		RT.cookie.setCookie(cookie_name, item.getData());
+	    });
+	}
 	return dd;
     }
 
-    let w = $('.DropDown');
+    let w = $('.DropDown'); // All the class="DropDown" elements on the page...
     $('.DropDown').each(function(index, element) {
-	const data = JSON.parse(element.textContent);
-	const title = $(element).data('title');
-	$(element).replaceWith(createDropDown(title, data).$element);
+	let e = $(element);
+	const data = JSON.parse(e.text());
+	const title = e.data('title');
+	const cookie_name = e.data('cookie_name');
+	e.replaceWith(createDropDown(title, cookie_name, data).$element);
     });
 });
 
