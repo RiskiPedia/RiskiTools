@@ -1,11 +1,15 @@
 <?php
 
+// autoload.php makes the MathParser  code in math-parser available
+require_once __DIR__ . '/autoload.php';
+
 class RiskiToolsHooks {
 
     public static function onParserFirstCallInit( Parser &$parser ) {
         $parser->setFunctionHook( 'userinputs', [ self::class, 'renderUserInputs' ] );
         $parser->setFunctionHook( 'fetchdata', [ self::class, 'renderFetchData']);
         $parser->setFunctionHook( 'DropDown', [ self::class, 'renderDropDown']);
+        $parser->setFunctionHook( 'RiskModel', [ self::class, 'renderRiskModel']);
 
         return true;
     }
@@ -112,5 +116,35 @@ class RiskiToolsHooks {
 /*	$output .= "<pre>".json_encode($data)."</pre>";  */
 
 	return [ $output,  'noparse' => true, 'isHTML' => false ];
+    }
+
+    public static function renderRiskModel( Parser &$parser) {
+        require_once 'ExpressionParser.php';
+
+	$options = RiskiToolsHooks::extractOptions( array_slice( func_get_args(), 1 ) );
+
+	if (!isset($options['calculation'])) {
+	    return [ '<span class="error">RiskModel: missing calculation= argument</span>' ];
+	}
+        $expression = $options['calculation'];
+
+        $allowedVariables = []; // means any variable name is OK
+	$errMsg = '';
+	try {
+	    $jsCode = convertToJavaScript($expression, $allowedVariables);
+ 	} catch (MathParser\Exceptions\UnknownTokenException $e) {  // TODO: WHY IS THIS NOT WORKING???????
+            $errMsg = 'bad expression '. $e->getName();
+	} catch (MathParser\Exceptions\ParenthesisMismatchException $e) {
+            $errMsg = 'mismatched parentheses';
+	} catch (Exception $e) {
+            $errMsg = $e->getMessage();
+	}
+	if ($errMsg) {
+	    return [ '<span class="error">RiskModel '.$expression.':'.$errMsg.'</span>' ];
+	}
+	else {
+	    $output = "<pre>".$jsCode."</pre>";
+	    return [ $output,  'noparse' => true, 'isHTML' => false ];
+	}
     }
 }
