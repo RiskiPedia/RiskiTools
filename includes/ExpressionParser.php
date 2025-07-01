@@ -78,12 +78,18 @@ class JavaScriptConverter implements MathParser\Interpreting\Visitors\Visitor
     public function visitConstantNode($node) { throw new Exception("Constants are not allowed: {$node->getName()}"); }
 }
 
+class ParserWithoutImplicitMultiplication extends MathParser\Parsing\Parser {
+    protected static function allowImplicitMultiplication() {
+        return false;
+    }
+}
+
 class RiskModelExpressionParser extends MathParser\AbstractMathParser
 {
     public function __construct()
     {
         $this->lexer = new CustomLexer();
-	$this->parser = new MathParser\Parsing\Parser();
+	$this->parser = new ParserWithoutImplicitMultiplication();
     }
     /**
      * Parse the given mathematical expression into an abstract syntax tree.
