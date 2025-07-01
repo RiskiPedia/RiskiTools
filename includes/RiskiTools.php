@@ -132,7 +132,7 @@ class RiskiToolsHooks {
 	$errMsg = '';
 	try {
 	    $jsCode = convertToJavaScript($expression, $allowedVariables);
- 	} catch (MathParser\Exceptions\UnknownTokenException $e) {  // TODO: WHY IS THIS NOT WORKING???????
+ 	} catch (MathParser\Exceptions\UnknownTokenException $e) {
             $errMsg = 'bad expression '. $e->getName();
 	} catch (MathParser\Exceptions\ParenthesisMismatchException $e) {
             $errMsg = 'mismatched parentheses';

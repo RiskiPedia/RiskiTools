@@ -102,12 +102,8 @@ class RiskModelExpressionParser extends MathParser\AbstractMathParser
 
 function convertToJavaScript(string $expression, array $allowedVariables = []): string
 {
-    try {
-        $parser = new RiskModelExpressionParser();
-        $ast = $parser->parse($expression);
-        $converter = new JavaScriptConverter($allowedVariables);
-        return $ast->accept($converter);
-    } catch (Exception $e) {
-        throw new Exception("Invalid expression: " . $e->getMessage());
-    }
+    $parser = new RiskModelExpressionParser();
+    $ast = $parser->parse($expression);
+    $converter = new JavaScriptConverter($allowedVariables);
+    return $ast->accept($converter);
 }
