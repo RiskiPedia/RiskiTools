@@ -1,150 +1,193 @@
 <?php
-
-// autoload.php makes the MathParser  code in math-parser available
 require_once __DIR__ . '/autoload.php';
 
 class RiskiToolsHooks {
-
-    public static function onParserFirstCallInit( Parser &$parser ) {
-        $parser->setFunctionHook( 'userinputs', [ self::class, 'renderUserInputs' ] );
-        $parser->setFunctionHook( 'fetchdata', [ self::class, 'renderFetchData']);
-        $parser->setFunctionHook( 'DropDown', [ self::class, 'renderDropDown']);
-        $parser->setFunctionHook( 'RiskModel', [ self::class, 'renderRiskModel']);
-
+    /**
+     * Registers parser function and tag hooks for RiskiTools.
+     * @param Parser $parser The MediaWiki parser instance.
+     * @return bool True on success.
+     */
+    public static function onParserFirstCallInit(Parser &$parser) {
+        $parser->setFunctionHook('userinputs', [self::class, 'renderUserInputs']);
+        $parser->setFunctionHook('fetchdata', [self::class, 'renderFetchData']);
+        $parser->setHook('dropdown', [self::class, 'renderDropDown']);
+        $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
         return true;
     }
 
-    public static function renderUserInputs( Parser &$parser ) {
-	    $parser->getOutput()->addModules( ['ext.userInfoInput'] );
-	    $output = "<span class=\"userInfo\">Loading...</span>\n----";
-        return [ $output, 'noparse' => true, 'isHTML' => false ];
-    }
-
-    public static function renderFetchData( Parser &$parser, $param1="", $param2="", $param3="", $param4="" ) { 
-        $parser->getOutput()->addModules( ['ext.fetchData'] );
-        $output = "<span class=\"fetchData $param1 $param2 $param3 $param4\"></span>";
-        return [ $output, 'noparse' => true, 'isHTML' => false ];
+    /**
+     * Renders a user input placeholder that loads client-side via JavaScript.
+     * @param Parser $parser The MediaWiki parser instance.
+     * @return array Output array with wikitext and parsing options.
+     */
+    public static function renderUserInputs(Parser &$parser) {
+        $parser->getOutput()->addModules(['ext.userInfoInput']);
+        $output = self::generateSpanOutput('userInfo', 'Loading...') . "\n----";
+        return [$output, 'noparse' => true, 'isHTML' => false];
     }
 
     /**
-     * Converts an array of values in form [0] => "name=value"
-     * into a real associative array in form [name] => value
-     * If no = is provided, true is assumed like this: [name] => true
-     *
-     * @param array string $options
-     * @return array $results
+     * Renders a data-fetching placeholder with dynamic classes.
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param string $param1 First class parameter.
+     * @param string $param2 Second class parameter.
+     * @param string $param3 Third class parameter.
+     * @param string $param4 Fourth class parameter.
+     * @return array Output array with wikitext and parsing options.
      */
-     public static function extractOptions( array $options ) {
-	$results = [];
-	foreach ( $options as $option ) {
-		$pair = array_map( 'trim', explode( '=', $option, 2 ) );
-		if ( count( $pair ) === 2 ) {
-			$results[ $pair[0] ] = $pair[1];
-		}
-		if ( count( $pair ) === 1 ) {
-			$results[ $pair[0] ] = true;
-		}
-	}
-	return $results;
+    public static function renderFetchData(Parser &$parser, $param1 = '', $param2 = '', $param3 = '', $param4 = '') {
+        $parser->getOutput()->addModules(['ext.fetchData']);
+        $classes = array_filter(['fetchData', $param1, $param2, $param3, $param4]);
+        $output = self::generateSpanOutput(implode(' ', $classes), '');
+        return [$output, 'noparse' => true, 'isHTML' => false];
     }
 
     /**
-     * Create a drop-down select box from some data stored in a DataTable2 table.
-     *
-     * Use it like this:
-     *
-     * {{#DropDown:title=...|table=...|label_column=...|value_column=...}}
-     * ... where:
-     * title: will be the title of the drop-down box
-     * table: the DataTable2 table that defines the options (REQUIRED)
-     * label_column: the column name for the displayed values (optional, first column by default)
-     * value_column: the column name for the resulting values (optional, second column by default OR first if it is a one-column table)
-     * cookie_name: the name of the browser cookie to update as values are selected. Defaults to value_column.
-     *
+     * Converts an array of name=value strings into an associative array.
+     * @param array $options Array of option strings.
+     * @return array Associative array of options.
      */
-    public static function renderDropDown( Parser &$parser) {
-        if ( !ExtensionRegistry::getInstance()->isLoaded( 'DataTable2' ) ) {
-    	    throw new MWException( 'DataTable2 extension is required but not loaded.' );
-	}
-	$dt2 = DataTable2::singleton();
-
-        $parser->getOutput()->addModules( ['ext.DropDown'] );
-
-	$options = RiskiToolsHooks::extractOptions( array_slice( func_get_args(), 1 ) );
-
-	if (!isset($options['table'])) {
-	    return [ '<span class="error">DropDown: missing table= argument</span>' ];
+    public static function extractOptions(array $options) {
+        $results = [];
+        foreach ($options as $option) {
+            $pair = array_map('trim', explode('=', $option, 2));
+            $results[$pair[0]] = count($pair) === 2 ? $pair[1] : true;
         }
-	$table = DataTable2Parser::table2title( $options['table'] );
-	$title = $options['title'] ?? 'Select';
-
-	$alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
-	if (count($alldata) < 1) {
-	   return [ '<span class="error">DropDown: empty table</span>' ];
-	}
-	/* We don't care about __pageId, so: */
-	foreach ($alldata as &$item) {
-	    unset($item['__pageId']);
-	}
-
-	$column_names = array_keys($alldata[0]);
-	$label_column = $options['label_column'] ?? $column_names[0];
-	$value_column = $options['value_column'] ?? $column_names[1] ?? $label_column;
-	$cookie_name = $options['cookie_name'] ?? $value_column;
-	foreach ([$label_column, $value_column] as $c) {
-	   if (!in_array($c, $column_names)) {
-              $errmsg = "DropDown: no column named ".$c;
-	      $errmsg .= " (valid columns are: ".implode(' ',$column_names).")";
-	      return [ '<span class="error">'.$errmsg.'</span>' ];
-	   }   
-        }
-
-	/* $alldata is all the data in the table. We just want two columns, the label_column and value_column, so: */
-	$data = array_combine(array_column($alldata, $label_column), array_column($alldata, $value_column));
-
-	/** Put a <span> in the output with all the data necessary to create the drop-down.
-	 * See ext.DropDown.js, which does the work of replacing the span with an OO.ui.DropDown
-	 * The labels and values are given as a JSON-encoded array in the text of the <span>
-	 * Other attributes of the dropdown (just the title for now) are passed as custom
-	 * data- attributes (JQuery has a built-in $(element).data() method that understands
-	 * custom attributes with that name pattern).
-	 */
-	$attributes = "data-title=\"$title\"";
-	$attributes .= " data-cookie_name=\"$cookie_name\"";
-	
-        $output = "<span hidden class=\"DropDown\" $attributes >".json_encode($data)."</span>";
-/*	$output .= "<pre>".json_encode($data)."</pre>";  */
-
-	return [ $output,  'noparse' => true, 'isHTML' => false ];
+        return $results;
     }
 
-    public static function renderRiskModel( Parser &$parser) {
+    /**
+     * Processes tag attributes into an associative array.
+     * @param array $attribs Raw tag attributes.
+     * @return array Processed attributes.
+     */
+    private static function processTagAttributes(array $attribs) {
+        $results = [];
+        foreach ($attribs as $key => $value) {
+            $results[strtolower(trim($key))] = trim($value);
+        }
+        return $results;
+    }
+
+    /**
+     * Renders a dropdown from a DataTable2 table using a <dropdown> tag.
+     * @param string $content Inner content of the tag (unused).
+     * @param array $attribs Tag attributes (e.g., ['table' => '...', 'title' => '...']).
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param PPFrame $frame The preprocessor frame.
+     * @return string Output wikitext.
+     * @throws MWException If DataTable2 is not loaded.
+     */
+    public static function renderDropDown($content, array $attribs, Parser $parser, PPFrame $frame) {
+        if (!ExtensionRegistry::getInstance()->isLoaded('DataTable2')) {
+            throw new MWException('DataTable2 extension is required but not loaded.');
+        }
+        $dt2 = DataTable2::singleton();
+        $parserOutput = $parser->getOutput();
+        $parserOutput->addModules(['ext.DropDown']);
+        
+        $options = self::processTagAttributes($attribs);
+        if (!isset($options['table'])) {
+            return self::formatError('dropdown: missing table attribute');
+        }
+        
+        $table = DataTable2Parser::table2title($options['table']);
+        $title = $options['title'] ?? 'Select';
+        $alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
+        if (count($alldata) < 1) {
+            return self::formatError('dropdown: empty table');
+        }
+        
+        foreach ($alldata as &$item) {
+            unset($item['__pageId']);
+        }
+        
+        $column_names = array_keys($alldata[0]);
+        $label_column = $options['label_column'] ?? $column_names[0];
+        $value_column = $options['value_column'] ?? $column_names[1] ?? $label_column;
+        $cookie_name = $options['cookie_name'] ?? $value_column;
+        
+        foreach ([$label_column, $value_column] as $c) {
+            if (!in_array($c, $column_names)) {
+                $errmsg = 'dropdown: no column named ' . htmlspecialchars($c);
+                $errmsg .= ' (valid columns are: ' . htmlspecialchars(implode(' ', $column_names)) . ')';
+                return self::formatError($errmsg);
+            }
+        }
+        
+        $data = array_combine(array_column($alldata, $label_column), array_column($alldata, $value_column));
+        
+        $attributes = [
+            'data-title' => $title,
+            'data-cookie_name' => $cookie_name
+        ];
+        $output = self::generateSpanOutput('DropDown', json_encode($data), $attributes, ['hidden' => '']);
+        return $output;
+    }
+
+    /**
+     * Renders a mathematical expression as JavaScript code from a <riskmodel> tag.
+     * @param string $content Inner content of the tag (unused).
+     * @param array $attribs Tag attributes (e.g., ['calculation' => 'x+y']).
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param PPFrame $frame The preprocessor frame.
+     * @return string Output wikitext.
+     */
+    public static function renderRiskModel($content, array $attribs, Parser $parser, PPFrame $frame) {
         require_once 'ExpressionParser.php';
 
-	$options = RiskiToolsHooks::extractOptions( array_slice( func_get_args(), 1 ) );
-
-	if (!isset($options['calculation'])) {
-	    return [ '<span class="error">RiskModel: missing calculation= argument</span>' ];
-	}
+        $parserOutput = $parser->getOutput();
+        $options = self::processTagAttributes($attribs);
+        
+        if (!isset($options['calculation'])) {
+            return self::formatError('riskmodel: missing calculation attribute');
+        }
         $expression = $options['calculation'];
 
-        $allowedVariables = []; // means any variable name is OK
-	$errMsg = '';
-	try {
-	    $jsCode = convertToJavaScript($expression, $allowedVariables);
- 	} catch (MathParser\Exceptions\UnknownTokenException $e) {
-            $errMsg = 'bad expression '. $e->getName();
-	} catch (MathParser\Exceptions\ParenthesisMismatchException $e) {
+        $allowedVariables = [];
+        $errMsg = '';
+        try {
+            $jsCode = convertToJavaScript($expression, $allowedVariables);
+        } catch (MathParser\Exceptions\UnknownTokenException $e) {
+            $errMsg = 'bad expression ' . $e->getName();
+        } catch (MathParser\Exceptions\ParenthesisMismatchException $e) {
             $errMsg = 'mismatched parentheses';
-	} catch (Exception $e) {
+        } catch (Exception $e) {
             $errMsg = $e->getMessage();
-	}
-	if ($errMsg) {
-	    return [ '<span class="error">RiskModel '.$expression.':'.$errMsg.'</span>' ];
-	}
-	else {
-	    $output = "<pre>".$jsCode."</pre>";
-	    return [ $output,  'noparse' => true, 'isHTML' => false ];
-	}
+        }
+        if ($errMsg) {
+            return self::formatError("riskmodel $expression: $errMsg");
+        }
+        
+        $output = '<pre>' . htmlspecialchars($jsCode) . '</pre>';
+        return $output;
+    }
+
+    /**
+     * Generates a sanitized HTML span element.
+     * @param string $class CSS class for the span.
+     * @param string $data Content inside the span.
+     * @param array $attributes Key-value pairs for HTML attributes.
+     * @param array $extraAttrs Additional attributes without values.
+     * @return string HTML span element.
+     */
+    private static function generateSpanOutput($class, $data, $attributes = [], $extraAttrs = []) {
+        $attrString = '';
+        foreach ($attributes as $key => $value) {
+            $attrString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
+        }
+        foreach ($extraAttrs as $key => $value) {
+            $attrString .= ' ' . htmlspecialchars($key) . ($value ? '="' . htmlspecialchars($value) . '"' : '');
+        }
+        return '<span class="' . htmlspecialchars($class) . '"' . $attrString . '>' . $data . '</span>';
+    }
+
+    /**
+     * Formats an error message in a standard way.
+     * @param string $message Error message.
+     * @return string Formatted error HTML.
+     */
+    private static function formatError($message) {
+        return '<span class="error">' . htmlspecialchars($message) . '</span>';
     }
 }
