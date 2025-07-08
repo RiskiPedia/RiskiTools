@@ -1,6 +1,0 @@
-<?php
-$magicWords = [];
-$magicWords['en'] = [
-    'fetchdata' => [0, 'fetchdata'],
-    'userinputs' => [ 0, 'userinputs' ]
-];

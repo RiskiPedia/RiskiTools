@@ -8,38 +8,9 @@ class RiskiToolsHooks {
      * @return bool True on success.
      */
     public static function onParserFirstCallInit(Parser &$parser) {
-        $parser->setFunctionHook('userinputs', [self::class, 'renderUserInputs']);
-        $parser->setFunctionHook('fetchdata', [self::class, 'renderFetchData']);
         $parser->setHook('dropdown', [self::class, 'renderDropDown']);
         $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
         return true;
-    }
-
-    /**
-     * Renders a user input placeholder that loads client-side via JavaScript.
-     * @param Parser $parser The MediaWiki parser instance.
-     * @return array Output array with wikitext and parsing options.
-     */
-    public static function renderUserInputs(Parser &$parser) {
-        $parser->getOutput()->addModules(['ext.userInfoInput']);
-        $output = self::generateSpanOutput('userInfo', 'Loading...') . "\n----";
-        return [$output, 'noparse' => true, 'isHTML' => false];
-    }
-
-    /**
-     * Renders a data-fetching placeholder with dynamic classes.
-     * @param Parser $parser The MediaWiki parser instance.
-     * @param string $param1 First class parameter.
-     * @param string $param2 Second class parameter.
-     * @param string $param3 Third class parameter.
-     * @param string $param4 Fourth class parameter.
-     * @return array Output array with wikitext and parsing options.
-     */
-    public static function renderFetchData(Parser &$parser, $param1 = '', $param2 = '', $param3 = '', $param4 = '') {
-        $parser->getOutput()->addModules(['ext.fetchData']);
-        $classes = array_filter(['fetchData', $param1, $param2, $param3, $param4]);
-        $output = self::generateSpanOutput(implode(' ', $classes), '');
-        return [$output, 'noparse' => true, 'isHTML' => false];
     }
 
     /**

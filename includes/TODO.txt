@@ -1,7 +1,0 @@
-clean up userInfoInput, split fields into separate modules, put them in a folder together maybe
-
-set up github RiskiTools fork on the server
-
-add time span, data type, and column inputss for fetchData to the dt2 header
-
-modify dt2-table2JS to load all tables on one page, possible could use API but probably dont need to
