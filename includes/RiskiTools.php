@@ -54,6 +54,7 @@ class RiskiToolsHooks {
             throw new MWException('DataTable2 extension is required but not loaded.');
         }
         $dt2 = DataTable2::singleton();
+
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.DropDown']);
         
@@ -95,6 +96,24 @@ class RiskiToolsHooks {
         $output = self::generateSpanOutput('DropDown', json_encode($data), $attributes, ['hidden' => '']);
         return $output;
     }
+
+    /**
+     * @brief [LoadExtensionSchemaUpdates]
+     * (https://www.mediawiki.org/wiki/Manual:Hooks/LoadExtensionSchemaUpdates)
+     * hook.
+     *
+     * Add the tables used to store DataTable2 data and metadata to
+     * the updater process.
+     *
+     * @param DatabaseUpdater $updater Object that updates the database.
+     *
+     * @return bool Always TRUE.
+     */
+    public static function onLoadExtensionSchemaUpdates( DatabaseUpdater $updater ) {
+        $updater->addExtensionTable( 'riskitools_riskmodel',
+	    		__DIR__ . '/../sql/riskitools_riskmodel.sql', true );
+	return true;
+     }
 
     /**
      * Renders a mathematical expression as JavaScript code from a <riskmodel> tag.

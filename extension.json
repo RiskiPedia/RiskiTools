@@ -20,6 +20,7 @@
         }
     },
     "Hooks": {
+	"LoadExtensionSchemaUpdates": "RiskiToolsHooks::onLoadExtensionSchemaUpdates",
         "ParserFirstCallInit": "RiskiToolsHooks::onParserFirstCallInit"
     },
     "AutoloadClasses": {
