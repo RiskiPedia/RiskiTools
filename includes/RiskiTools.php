@@ -67,7 +67,7 @@ class RiskiToolsHooks {
         $title = $options['title'] ?? 'Select';
         $alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
         if (count($alldata) < 1) {
-            return self::formatError('dropdown: empty table');
+            return self::formatError('dropdown: missing/empty DataTable2 table ' . htmlspecialchars($table));
         }
         
         foreach ($alldata as &$item) {
