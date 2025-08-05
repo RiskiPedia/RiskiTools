@@ -167,6 +167,9 @@ class RiskiToolsHooks {
         $parserOutput = $parser->getOutput();
         $options = self::processTagAttributes($attribs);
         
+        if (!isset($options['name'])) {
+            return self::formatError('riskmodel: missing name attribute');
+        }
         if (!isset($options['calculation'])) {
             return self::formatError('riskmodel: missing calculation attribute');
         }
