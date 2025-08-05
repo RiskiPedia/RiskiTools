@@ -21,7 +21,8 @@
     },
     "Hooks": {
 	"LoadExtensionSchemaUpdates": "RiskiToolsHooks::onLoadExtensionSchemaUpdates",
-        "ParserFirstCallInit": "RiskiToolsHooks::onParserFirstCallInit"
+        "ParserFirstCallInit": "RiskiToolsHooks::onParserFirstCallInit",
+        "RevisionFromEditComplete": "RiskiToolsHooks::onRevisionFromEditComplete"
     },
     "AutoloadClasses": {
         "RiskiToolsHooks": "includes/RiskiTools.php"

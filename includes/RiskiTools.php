@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/autoload.php';
 
+use MediaWiki\MediaWikiServices;
+use MediaWiki\Revision\RevisionRecord;
+use MediaWiki\Revision\SlotRecord;
+
 class RiskiToolsHooks {
     /**
      * Registers parser function and tag hooks for RiskiTools.
@@ -38,6 +42,40 @@ class RiskiToolsHooks {
             $results[strtolower(trim($key))] = trim($value);
         }
         return $results;
+    }
+
+
+    /**
+     * Update the riskitools_riskmodel database when a page containing a <riskmodel> tag is
+     * changed.
+     *
+     * Called when a revision was inserted due to an edit, file upload, import or page move.
+     */
+    public static function onRevisionFromEditComplete( $wikiPage, $rev, $originalRevId, $user, &$tags ) {
+        $content = $rev->getContent( SlotRecord::MAIN )->getWikitextForTransclusion();
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
+        $pageId = $wikiPage->getId();
+
+        /* Grab all the <riskmodel> tags */
+        Parser::extractTagsAndParams( [ 'riskmodel' ], $content, $riskmodels );
+        /* Delete old data */
+        $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
+
+        /* Insert new data */
+        foreach ($riskmodels as $riskmodel) {
+            [ $element, $content, $args ] = $riskmodel;
+            $options = self::processTagAttributes($args);
+
+            $expression = $args['calculation'] ?? '';
+            $name = $args['name'] ?? '';
+
+            $db->insert( 'riskitools_riskmodel',
+                [ 'rm_page_id' => $pageId,
+                  'rm_expression' => $db->addQuotes($expression),
+                  'rm_timestamp' => 'CURRENT_TIMESTAMP',
+                  'rm_name' => $name
+                ]);
+        }
     }
 
     /**
