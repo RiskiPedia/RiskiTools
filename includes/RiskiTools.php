@@ -149,8 +149,7 @@ class RiskiToolsHooks {
      * (https://www.mediawiki.org/wiki/Manual:Hooks/LoadExtensionSchemaUpdates)
      * hook.
      *
-     * Add the tables used to store DataTable2 data and metadata to
-     * the updater process.
+     * Add the riskitools_riskmodel table to the database
      *
      * @param DatabaseUpdater $updater Object that updates the database.
      *
