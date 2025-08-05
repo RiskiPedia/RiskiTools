@@ -45,46 +45,31 @@ class RiskiToolsHooks {
     }
 
     /**
-     * Update the riskitools_riskmodel database when a page containing a <riskmodel> tag is
-     * changed.
-     *
-     * Called when a revision was inserted due to an edit, file upload, import or page move.
+     * Generates a sanitized HTML span element.
+     * @param string $class CSS class for the span.
+     * @param string $data Content inside the span.
+     * @param array $attributes Key-value pairs for HTML attributes.
+     * @param array $extraAttrs Additional attributes without values.
+     * @return string HTML span element.
      */
-    public static function onRevisionFromEditComplete( $wikiPage, $rev, $originalRevId, $user, &$tags ) {
-        $content = $rev->getContent( SlotRecord::MAIN )->getWikitextForTransclusion();
-        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
-        $pageId = $wikiPage->getId();
-
-        /* Grab all the <riskmodel> tags */
-        Parser::extractTagsAndParams( [ 'riskmodel' ], $content, $riskmodels );
-        /* Delete old data */
-        $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
-
-        /* Insert new data */
-        foreach ($riskmodels as $riskmodel) {
-            [ $element, $content, $args ] = $riskmodel;
-            $options = self::processTagAttributes($args);
-
-            $expression = $args['calculation'] ?? '';
-            $name = $args['name'] ?? '';
-
-            $db->insert( 'riskitools_riskmodel',
-                [ 'rm_page_id' => $pageId,
-                  'rm_expression' => $db->addQuotes($expression),
-                  'rm_timestamp' => 'CURRENT_TIMESTAMP',
-                  'rm_name' => $name
-                ]);
+    private static function generateSpanOutput($class, $data, $attributes = [], $extraAttrs = []) {
+        $attrString = '';
+        foreach ($attributes as $key => $value) {
+            $attrString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
         }
+        foreach ($extraAttrs as $key => $value) {
+            $attrString .= ' ' . htmlspecialchars($key) . ($value ? '="' . htmlspecialchars($value) . '"' : '');
+        }
+        return '<span class="' . htmlspecialchars($class) . '"' . $attrString . '>' . $data . '</span>';
     }
 
     /**
-     * Delete riskmodel data from the database when a page is deleted
+     * Formats an error message in a standard way.
+     * @param string $message Error message.
+     * @return string Formatted error HTML.
      */
-    public static function onPageDelete( $page, $deleter, $reason, $status, $suppress ) {
-        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
-        $pageId = $page->getId();
-        $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
-        return true;
+    private static function formatError($message) {
+        return '<span class="error">' . htmlspecialchars($message) . '</span>';
     }
 
     /**
@@ -145,6 +130,49 @@ class RiskiToolsHooks {
     }
 
     /**
+     * Update the riskitools_riskmodel database when a page containing a <riskmodel> tag is
+     * changed.
+     *
+     * Called when a revision was inserted due to an edit, file upload, import or page move.
+     */
+    public static function onRevisionFromEditComplete( $wikiPage, $rev, $originalRevId, $user, &$tags ) {
+        $content = $rev->getContent( SlotRecord::MAIN )->getWikitextForTransclusion();
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
+        $pageId = $wikiPage->getId();
+
+        /* Grab all the <riskmodel> tags */
+        Parser::extractTagsAndParams( [ 'riskmodel' ], $content, $riskmodels );
+        /* Delete old data */
+        $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
+
+        /* Insert new data */
+        foreach ($riskmodels as $riskmodel) {
+            [ $element, $content, $args ] = $riskmodel;
+            $options = self::processTagAttributes($args);
+
+            $expression = $args['calculation'] ?? '';
+            $name = $args['name'] ?? '';
+
+            $db->insert( 'riskitools_riskmodel',
+                [ 'rm_page_id' => $pageId,
+                  'rm_expression' => $db->addQuotes($expression),
+                  'rm_timestamp' => 'CURRENT_TIMESTAMP',
+                  'rm_name' => $name
+                ]);
+        }
+    }
+
+    /**
+     * Delete riskmodel data from the database when a page is deleted
+     */
+    public static function onPageDelete( $page, $deleter, $reason, $status, $suppress ) {
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
+        $pageId = $page->getId();
+        $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
+        return true;
+    }
+
+    /**
      * @brief [LoadExtensionSchemaUpdates]
      * (https://www.mediawiki.org/wiki/Manual:Hooks/LoadExtensionSchemaUpdates)
      * hook.
@@ -202,31 +230,4 @@ class RiskiToolsHooks {
         return $output;
     }
 
-    /**
-     * Generates a sanitized HTML span element.
-     * @param string $class CSS class for the span.
-     * @param string $data Content inside the span.
-     * @param array $attributes Key-value pairs for HTML attributes.
-     * @param array $extraAttrs Additional attributes without values.
-     * @return string HTML span element.
-     */
-    private static function generateSpanOutput($class, $data, $attributes = [], $extraAttrs = []) {
-        $attrString = '';
-        foreach ($attributes as $key => $value) {
-            $attrString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
-        }
-        foreach ($extraAttrs as $key => $value) {
-            $attrString .= ' ' . htmlspecialchars($key) . ($value ? '="' . htmlspecialchars($value) . '"' : '');
-        }
-        return '<span class="' . htmlspecialchars($class) . '"' . $attrString . '>' . $data . '</span>';
-    }
-
-    /**
-     * Formats an error message in a standard way.
-     * @param string $message Error message.
-     * @return string Formatted error HTML.
-     */
-    private static function formatError($message) {
-        return '<span class="error">' . htmlspecialchars($message) . '</span>';
-    }
 }
