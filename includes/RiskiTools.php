@@ -44,7 +44,6 @@ class RiskiToolsHooks {
         return $results;
     }
 
-
     /**
      * Update the riskitools_riskmodel database when a page containing a <riskmodel> tag is
      * changed.
@@ -76,6 +75,16 @@ class RiskiToolsHooks {
                   'rm_name' => $name
                 ]);
         }
+    }
+
+    /**
+     * Delete riskmodel data from the database when a page is deleted
+     */
+    public static function onPageDelete( $page, $deleter, $reason, $status, $suppress ) {
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
+        $pageId = $page->getId();
+        $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
+        return true;
     }
 
     /**
