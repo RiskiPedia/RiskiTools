@@ -156,7 +156,6 @@ class RiskiToolsHooks {
             $db->insert( 'riskitools_riskmodel',
                 [ 'rm_page_id' => $pageId,
                   'rm_expression' => $db->addQuotes($expression),
-                  'rm_timestamp' => 'CURRENT_TIMESTAMP',
                   'rm_name' => $name
                 ]);
         }
