@@ -1,24 +1,25 @@
 const utils = {
     getCookie: function (name) {
-        let cookie = `; ${document.cookie}`;
-        let parts = cookie.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
+        let riskiData = mw.config.get('riskiData') || {}
+        if (name in riskiData) return riskiData[name];
         else return -1;
     },
 
     setCookie: function (name, value) {
-        document.cookie = name + '=' + value +
-                    ";expires=Thu, 5 March 2030 12:00:00 UTC; path=/";
+        let riskiData = mw.config.get('riskiData') || {}
+        riskiData[name] = value;
+        mw.config.set('riskiData', riskiData);
+        // TODO: Update session on server...
     },
 
     deleteAllCookies: function (){
-        document.cookie = "userAge=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        document.cookie = "userGender=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        document.cookie = "userCountry=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        mw.config.set('riskiData', {});
     },
 
     deleteCookie: function (name){
-        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        let riskiData = mw.config.get('riskiData') || {}
+        delete riskiData[name];
+        mw.config.set('riskiData', riskiData);
     }
 }
 
