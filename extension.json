@@ -27,7 +27,11 @@
         "RevisionFromEditComplete": "RiskiToolsHooks::onRevisionFromEditComplete"
     },
     "AutoloadClasses": {
-        "RiskiToolsHooks": "includes/RiskiTools.php"
+        "RiskiToolsHooks": "includes/RiskiTools.php",
+        "ApiUpdateRiskiData": "includes/api/ApiUpdateRiskiData.php"
+    },
+    "APIModules": {
+        "updateriskidata": "ApiUpdateRiskiData"
     },
     "manifest_version": 2
 }
