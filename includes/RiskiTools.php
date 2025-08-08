@@ -73,6 +73,23 @@ class RiskiToolsHooks {
     }
 
     /**
+     * Make saved session data available to JavaScript
+     */
+    public static function onBeforePageDisplay(OutputPage $out, Skin $skin) {
+        $request = $out->getRequest();
+        $session = $request->getSession();
+        if (!$session->isPersistent()) {
+            $session->persist();
+        }
+        $pairs = $session->get('riskiData', []);
+
+        // Add to JS as mw.config variable (JSON-safe)
+        $out->addJsConfigVars('riskiData', $pairs);
+
+        return true;
+    }
+
+    /**
      * Renders a dropdown from a DataTable2 table using a <dropdown> tag.
      * @param string $content Inner content of the tag (unused).
      * @param array $attribs Tag attributes (e.g., ['table' => '...', 'title' => '...']).

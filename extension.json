@@ -20,6 +20,7 @@
         }
     },
     "Hooks": {
+        "BeforePageDisplay" : "RiskiToolsHooks::onBeforePageDisplay",
         "PageDelete": "RiskiToolsHooks::onPageDelete",
 	"LoadExtensionSchemaUpdates": "RiskiToolsHooks::onLoadExtensionSchemaUpdates",
         "ParserFirstCallInit": "RiskiToolsHooks::onParserFirstCallInit",
