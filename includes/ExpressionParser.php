@@ -65,7 +65,7 @@ class JavaScriptConverter implements MathParser\Interpreting\Visitors\Visitor
         if (!empty($this->allowedVariables) && !in_array($varName, $this->allowedVariables)) {
             throw new Exception("Invalid variable: $varName");
         }
-        return 'RS.getCookie("'.$varName.'")';
+        return 'RT.cookie.getCookie("'.$varName.'")';
     }
 
     public function visitFunctionNode(MathParser\Parsing\Nodes\FunctionNode $node)
