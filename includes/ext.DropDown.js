@@ -14,7 +14,7 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	    }
 	} );
 	
-	// select the option stored in cookie, or default
+	// select the option stored in cookie
 	if (cookie_name && RT.cookie.getCookie(cookie_name)){
 	    dd.getMenu().selectItemByData(
 		RT.cookie.getCookie(cookie_name)
@@ -36,12 +36,13 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	if (cookie_name) {
 	    dd.getMenu().on('select', function (item) {
 		RT.cookie.setCookie(cookie_name, item.getData());
+                RT.cookie.setCookie(cookie_name+'_label', item.getLabel());
 	    });
 	}
 	return dd;
     }
 
-    let w = $('.DropDown'); // All the class="DropDown" elements on the page...
+    // All the class="DropDown" elements on the page...
     $('.DropDown').each(function(index, element) {
 	let e = $(element);
 	const data = JSON.parse(e.text());
