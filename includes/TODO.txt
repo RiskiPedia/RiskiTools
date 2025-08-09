@@ -1,0 +1,16 @@
+Implement a <RiskDisplay> that references a <RiskModel> and Does Stuff.
+
+Example... page with several <DropDown> for pregnancy risk
+then:
+
+<RiskDisplay model="...">
+Your risk of getting pregnant after one session of penis-in-vagina intercourse is about <n> in 100.
+</RiskDisplay>
+
+RiskDisplay doesn't display anything until all of the model params have been set. It replaces <n> with the calculated risk, dynamically.
+
+??? What about comparing risks ???
+Maybe a <RiskCompare model="..."></RiskCompare> that Does Something Magical?
+
+
+
