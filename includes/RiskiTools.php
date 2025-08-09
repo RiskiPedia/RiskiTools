@@ -83,6 +83,17 @@ class RiskiToolsHooks {
         }
         $pairs = $session->get('riskiData', []);
 
+        // Add ?deleteAllCookies to the URL to delete all the riskiData cookies:
+        if ($request->getVal('deleteAllCookies')) {
+            $session->remove('riskiData');
+            $pairs = [];
+        }
+        $dc = $request->getVal('deleteCookie');
+        if ($dc && array_key_exists($dc, $pairs)) {
+            unset($pairs[$dc]);
+            $session->set('riskiData', $pairs);
+        }
+
         // Add to JS as mw.config variable (JSON-safe)
         $out->addJsConfigVars('riskiData', $pairs);
 

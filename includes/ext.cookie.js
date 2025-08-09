@@ -26,18 +26,6 @@ const utils = {
                 console.log('Error details:', err.error);
             }
         });
-    },
-
-    deleteAllCookies: function (){
-        mw.config.set('riskiData', {});
-        // TODO: update server
-    },
-
-    deleteCookie: function (name){
-        let riskiData = mw.config.get('riskiData') || {}
-        delete riskiData[name];
-        mw.config.set('riskiData', riskiData);
-        // TODO: update server
     }
 }
 

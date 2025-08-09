@@ -8,7 +8,7 @@ class ApiUpdateRiskiData extends ApiBase {
 
         // Get session and update
         $session = $this->getRequest()->getSession();
-        $pairs = $session->get('riskiData', []);
+        $pairs = $session->get('riskiData', []) ?: [];
         $pairs = array_merge($pairs, $updates);  // Or handle deletes/overwrites as needed
         $session->set('riskiData', $pairs);
 
