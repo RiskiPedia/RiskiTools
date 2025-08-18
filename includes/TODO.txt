@@ -4,7 +4,6 @@ Example... page with several <DropDown> for pregnancy risk
 then:
 
 <RiskDisplay model="...">
-Your risk of getting pregnant after one session of penis-in-vagina intercourse is about <n> in 100.
 </RiskDisplay>
 
 RiskDisplay doesn't display anything until all of the model params have been set. It replaces <n> with the calculated risk, dynamically.
@@ -12,5 +11,18 @@ RiskDisplay doesn't display anything until all of the model params have been set
 ??? What about comparing risks ???
 Maybe a <RiskCompare model="..."></RiskCompare> that Does Something Magical?
 
+OR: Probably better if the "Your risk of..." is part of the RiskModel.
 
+e.g.
+
+<RiskModel name="pregnancy_risk_per_month" calculation="...">
+{result} in 100 chance of getting pregnant per month.
+</RiskModel>
+
+It'd be super nice if it could summarize the inputs, like:
+
+31-year-old woman
+20-year-old partner           About a 5% (one in twenty) chance of getting pregnant per month
+using no contraception     
+intercourse 11 times/month
 
