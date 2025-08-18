@@ -1,0 +1,40 @@
+Here is the context for the rest of our chat:
+
+I'm working on a project called RiskiPedia.
+It is implemented in PHP and JavaScript on top of the WikiMedia code base
+and the DataTable2 extension.
+The public web server is a Google Cloud Debian Linux server based on
+the Bitnami package for MediaWiki 1.43.0
+Documentation:   https://docs.bitnami.com/google/apps/mediawiki/
+The main URL for the riskipedia wiki is https://riski.wiki/
+
+The idea of RiskiPedia is to create an open, interactive "encyclopedia
+of risks". For example, a visitor might be interested in their risk of
+getting pregnant and would visit the RiskiPedia Pregnancy page to
+explore the risks. There they will find some text describing what the
+major factors are that affect the chances of getting pregnant, and
+then interactive elements that let them customize the scenario for
+their circumstances-- for example, their age, the age of their
+partner, and what type of birth control they're using (if any). The
+page will dynamically update to display the chances of getting
+pregnant in terms that (hopefully) are easy to understand.
+
+RiskiPedia will be a wiki -- anybody will be able to create pages and
+upload data on any risk that interests them. Our challenge is to
+create easy-to-use WikiMedia extensions so moderately technically
+proficient people can create pages (like Wikipedia, where page
+creators have to have some knowledge of wiki markup and how to use the
+Wikimedia software). Every front-facing interactive page will have a
+page full of data and references and "risk models" that have the
+calculations that take the user-provided input and calculates risk
+numbers (e.g. "a 11 in 100 chance of getting pregnant per month").
+
+Data will be stored in <datatable2> tables.
+
+I have already implemented a <DropDown> UI extension that shows data
+from a <datatable2> table and lets the user select one of the choices.
+The choice is stored in a session variable that is sent to the server
+and stored as part of their session (so choices are remembered and
+data like the user's age are remembered across different pages of the
+site).
+
