@@ -168,7 +168,7 @@ class RiskiToolsHooks {
         $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
         $pageId = $wikiPage->getId();
 
-        /* Grab all the <riskmodel> tags */
+        /* Grab all the <riskmodel> tags on the page */
         Parser::extractTagsAndParams( [ 'riskmodel' ], $content, $riskmodels );
         /* Delete old data */
         $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
@@ -184,6 +184,7 @@ class RiskiToolsHooks {
             $db->insert( 'riskitools_riskmodel',
                 [ 'rm_page_id' => $pageId,
                   'rm_expression' => $db->addQuotes($expression),
+                  'rm_text' => $content ?? '',
                   'rm_name' => $name
                 ]);
         }
