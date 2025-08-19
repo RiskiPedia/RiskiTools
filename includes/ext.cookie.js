@@ -1,11 +1,21 @@
 const utils = {
-    getCookie: function (name) {
-        let riskiData = mw.config.get('riskiData') || {}
-        if (name in riskiData) return riskiData[name];
-        else return -1;
+    hasCookie: function (name) {
+        const riskiData = mw.config.get('riskiData') || {};
+        return name in riskiData; // Returns true if name exists, false otherwise
     },
-
+    getCookie: function (name) {
+        const riskiData = mw.config.get('riskiData') || {};
+        if (!(name in riskiData)) {
+            throw new Error(`Cookie "${name}" is not set`);
+        }
+        return riskiData[name];
+    },
     setCookie: function (name, value) {
+       if (typeof name !== 'string' || name.trim() === '' || value === undefined) {
+            console.error('Invalid name or value:', name, value);
+            return;
+        }
+
         let riskiData = mw.config.get('riskiData') || {}
         riskiData[name] = value;
         mw.config.set('riskiData', riskiData);

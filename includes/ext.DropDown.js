@@ -15,7 +15,7 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	} );
 	
 	// select the option stored in cookie
-	if (cookie_name && RT.cookie.getCookie(cookie_name)){
+	if (cookie_name && RT.cookie.hasCookie(cookie_name)){
 	    dd.getMenu().selectItemByData(
 		RT.cookie.getCookie(cookie_name)
 	    );
