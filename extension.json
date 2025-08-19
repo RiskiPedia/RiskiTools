@@ -17,6 +17,11 @@
             "scripts": [
                 "extensions/RiskiTools/includes/ext.DropDown.js"
             ]
+        },
+        "ext.RiskDisplay": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.RiskDisplay.js"
+            ]
         }
     },
     "Hooks": {

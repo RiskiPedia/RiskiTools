@@ -242,7 +242,7 @@ class RiskiToolsHooks {
         }
         $expression = $options['calculation'];
 
-        list($jsCode, $vars, $errMsg) = convertToJavaScript($expression);
+        list($jscode, $vars, $errMsg) = convertToJavaScript($expression);
         if ($errMsg) {
             return self::formatError("riskmodel $expression: $errMsg");
         }
@@ -253,11 +253,11 @@ class RiskiToolsHooks {
         // TODO:
         // Output GUI widgets that let risk model creators
         // tweak inputs and observe the calculation output
-        $jsCode = htmlspecialchars($jsCode);
+        $jscode = htmlspecialchars($jscode);
         $output = <<<END
 <pre>
 Name: $fullRiskModelTitle
-Code: $jsCode
+Code: $jscode
 </pre> 
 END;
         return $output;
@@ -287,6 +287,8 @@ END;
         require_once 'ExpressionParser.php';
 
         $parserOutput = $parser->getOutput();
+        $parserOutput->addModules(['ext.RiskDisplay']);
+
         $options = self::processTagAttributes($attribs);
         
         if (!isset($options['model'])) {
@@ -319,18 +321,18 @@ END;
         $text = $row['rm_text'];
         $expression = $row['rm_expression'];
 
-        list($jsCode, $vars, $errMsg) = convertToJavaScript($expression);
+        list($jscode, $vars, $errMsg) = convertToJavaScript($expression);
         if ($errMsg) {
             return self::formatError("riskdisplay $expression: $errMsg");
         }
 
-        $output = <<<END
-<pre>
-Text: $text
-Expression: $expression
-Code: $jsCode
-</pre>
-END;
+
+        $attributes = [
+            'data-jscode' => $jscode,
+            'id' => bin2hex(random_bytes(16))
+        ];
+        $output = self::generateSpanOutput("RiskDisplay", $text, $attributes,); // ['hidden' => '']);
+
         return $output;
     }
 }

@@ -19,6 +19,7 @@ const utils = {
         let riskiData = mw.config.get('riskiData') || {}
         riskiData[name] = value;
         mw.config.set('riskiData', riskiData);
+        mw.hook('riskiData.changed').fire(); // Trigger update
 
         var updates = {};
         updates[name]=value;
