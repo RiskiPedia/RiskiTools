@@ -139,7 +139,7 @@ class RiskiToolsHooks {
         $column_names = array_keys($alldata[0]);
         $label_column = $options['label_column'] ?? $column_names[0];
         $value_column = $options['value_column'] ?? $column_names[1] ?? $label_column;
-        $cookie_name = $options['cookie_name'] ?? $value_column;
+        $cookie_name = $options['cookie'] ?? $value_column;
         
         foreach ([$label_column, $value_column] as $c) {
             if (!in_array($c, $column_names)) {
