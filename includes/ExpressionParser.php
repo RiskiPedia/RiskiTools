@@ -25,11 +25,12 @@ class CustomLexer extends MathParser\Lexing\Lexer
     }
 }
 
-// JavaScript Converter (unchanged)
+// JavaScript Converter
 class JavaScriptConverter implements MathParser\Interpreting\Visitors\Visitor
 {
     private $allowedOperations = ['+', '-', '*', '/', '^'];
     private $allowedVariables = [];
+    public $foundVariables = []; // After parsing will contain all the variables found, maybe with duplicates
 
     public function __construct(array $allowedVariables = [])
     {
@@ -65,6 +66,7 @@ class JavaScriptConverter implements MathParser\Interpreting\Visitors\Visitor
         if (!empty($this->allowedVariables) && !in_array($varName, $this->allowedVariables)) {
             throw new Exception("Invalid variable: $varName");
         }
+        $this->foundVariables[] = $varName;
         return 'RT.cookie.getCookie("'.$varName.'")';
     }
 
@@ -106,10 +108,36 @@ class RiskModelExpressionParser extends MathParser\AbstractMathParser
     }
 }
 
-function convertToJavaScript(string $expression, array $allowedVariables = []): string
+/*
+ * Convert $expression to JavaScript
+ *
+ * Returns an array with three items:
+ *  the code
+ *  array of variables used in the expression
+ *  error if parsing failed (empty string if no error)
+ */
+function convertToJavaScript(string $expression, array $allowedVariables = []): array
 {
-    $parser = new RiskModelExpressionParser();
-    $ast = $parser->parse($expression);
-    $converter = new JavaScriptConverter($allowedVariables);
-    return $ast->accept($converter);
+    $errMsg = "";
+    try {
+        $parser = new RiskModelExpressionParser();
+        $ast = $parser->parse($expression);
+        $converter = new JavaScriptConverter($allowedVariables);
+        return [
+            $ast->accept($converter),
+            array_unique($converter->foundVariables),
+            ""
+            ];
+    } catch (MathParser\Exceptions\UnknownTokenException $e) {
+        $errMsg = 'bad expression ' . $e->getName();
+    } catch (MathParser\Exceptions\ParenthesisMismatchException $e) {
+        $errMsg = 'mismatched parentheses';
+    } catch (Exception $e) {
+        $errMsg = $e->getMessage();
+    }
+    return [
+        '',
+        '',
+        $errMsg
+        ];
 }

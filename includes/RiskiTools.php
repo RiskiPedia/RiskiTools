@@ -14,6 +14,7 @@ class RiskiToolsHooks {
     public static function onParserFirstCallInit(Parser &$parser) {
         $parser->setHook('dropdown', [self::class, 'renderDropDown']);
         $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
+        $parser->setHook('riskdisplay', [self::class, 'renderRiskDisplay']);
         return true;
     }
 
@@ -60,7 +61,8 @@ class RiskiToolsHooks {
         foreach ($extraAttrs as $key => $value) {
             $attrString .= ' ' . htmlspecialchars($key) . ($value ? '="' . htmlspecialchars($value) . '"' : '');
         }
-        return '<span class="' . htmlspecialchars($class) . '"' . $attrString . '>' . $data . '</span>';
+        $class = htmlspecialchars($class);
+        return "<span class=\"$class\" $attrString>$data</span>";
     }
 
     /**
@@ -183,7 +185,7 @@ class RiskiToolsHooks {
 
             $db->insert( 'riskitools_riskmodel',
                 [ 'rm_page_id' => $pageId,
-                  'rm_expression' => $db->addQuotes($expression),
+                  'rm_expression' => $expression,
                   'rm_text' => $content ?? '',
                   'rm_name' => $name
                 ]);
@@ -218,7 +220,8 @@ class RiskiToolsHooks {
      }
 
     /**
-     * Renders a mathematical expression as JavaScript code from a <riskmodel> tag.
+     * Renders a <RiskModel>
+     *
      * @param string $content Inner content of the tag (unused).
      * @param array $attribs Tag attributes (e.g., ['calculation' => 'x+y']).
      * @param Parser $parser The MediaWiki parser instance.
@@ -239,23 +242,95 @@ class RiskiToolsHooks {
         }
         $expression = $options['calculation'];
 
-        $allowedVariables = [];
-        $errMsg = '';
-        try {
-            $jsCode = convertToJavaScript($expression, $allowedVariables);
-        } catch (MathParser\Exceptions\UnknownTokenException $e) {
-            $errMsg = 'bad expression ' . $e->getName();
-        } catch (MathParser\Exceptions\ParenthesisMismatchException $e) {
-            $errMsg = 'mismatched parentheses';
-        } catch (Exception $e) {
-            $errMsg = $e->getMessage();
-        }
+        list($jsCode, $vars, $errMsg) = convertToJavaScript($expression);
         if ($errMsg) {
             return self::formatError("riskmodel $expression: $errMsg");
         }
         
-        $output = '<pre>' . htmlspecialchars($jsCode) . '</pre>';
+        $pageTitle = $parser->getTitle()->getFullText();
+        $fullRiskModelTitle = $pageTitle . ':' . $options['name'];
+
+        // TODO:
+        // Output GUI widgets that let risk model creators
+        // tweak inputs and observe the calculation output
+        $jsCode = htmlspecialchars($jsCode);
+        $output = <<<END
+<pre>
+Name: $fullRiskModelTitle
+Code: $jsCode
+</pre> 
+END;
         return $output;
     }
 
+    public static function splitAtLastColon($string) {
+        $lastColonPos = strrpos($string, ':');
+        if ($lastColonPos === false) {
+            // No colon found, return the whole string as the first part, empty second part
+            return [$string, ''];
+        }
+        $before = substr($string, 0, $lastColonPos);
+        $after = substr($string, $lastColonPos + 1);
+        return [$before, $after];
+    }
+
+    /**
+     * Renders a <RiskDisplay>
+     *
+     * @param string $content Inner content of the tag (unused).
+     * @param array $attribs Tag attributes (e.g., ['calculation' => 'x+y']).
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param PPFrame $frame The preprocessor frame.
+     * @return string Output wikitext.
+     */
+    public static function renderRiskDisplay($content, array $attribs, Parser $parser, PPFrame $frame) {
+        require_once 'ExpressionParser.php';
+
+        $parserOutput = $parser->getOutput();
+        $options = self::processTagAttributes($attribs);
+        
+        if (!isset($options['model'])) {
+           return self::formatError('riskdisplay: missing model attribute');
+        }
+
+        list($pageTitle, $model) = self::splitAtLastColon($options['model']);
+        if ($model == "") {
+           return self::formatError('riskdisplay: missing model name');
+        }
+
+        $title = Title::newFromText($pageTitle);
+        if (!$title || !$title->exists()) {
+           return self::formatError("riskdisplay: page \"$pageTitle\" does not exist.");
+        }
+        $pageId = $title->getArticleID();
+
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
+
+        $result = $db->select(
+            'riskitools_riskmodel',
+            ['rm_expression','rm_text'],
+            ['rm_page_id' => $pageId, 'rm_name' => $model],
+            __METHOD__
+            );
+        if ($result->numRows() == 0) {
+            return self::formatError("riskdisplay: model \"$model\" not found on page \"$pageTitle\"");
+        }
+        $row = $result->fetchRow();
+        $text = $row['rm_text'];
+        $expression = $row['rm_expression'];
+
+        list($jsCode, $vars, $errMsg) = convertToJavaScript($expression);
+        if ($errMsg) {
+            return self::formatError("riskdisplay $expression: $errMsg");
+        }
+
+        $output = <<<END
+<pre>
+Text: $text
+Expression: $expression
+Code: $jsCode
+</pre>
+END;
+        return $output;
+    }
 }
