@@ -1,4 +1,4 @@
-mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
+mw.loader.using(['oojs-ui'], function () {
     // Now OOUI is loaded and we can use it
 
     function updateRiskDisplays() {
@@ -28,6 +28,6 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
     // Initial update
     updateRiskDisplays();
 
-    // Listen for cookie changes via custom hook
+    // Listen for UI data changes via custom hook
     mw.hook('riskiData.changed').add(updateRiskDisplays);
 });

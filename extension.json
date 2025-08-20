@@ -13,6 +13,11 @@
                 "extensions/RiskiTools/includes/ext.cookie.js"
             ]
         },
+        "ext.pagestate": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.pagestate.js"
+            ]
+        },
         "ext.DropDown": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.DropDown.js"

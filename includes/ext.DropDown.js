@@ -1,4 +1,4 @@
-mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
+mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
     // Now OOUI is loaded and we can use it
 
     // Create an OOUI dropdown
@@ -15,9 +15,9 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	} );
 	
 	// select the option stored in cookie
-	if (cookie_name && RT.cookie.hasCookie(cookie_name)){
+	if (cookie_name && RT.pagestate.hasPageState(cookie_name)){
 	    dd.getMenu().selectItemByData(
-		RT.cookie.getCookie(cookie_name)
+		RT.pagestate.getPageState(cookie_name)
 	    );
 	}
 	// Calculate a reasonable size based on text length
@@ -35,7 +35,7 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	// Update cookie when value changes
 	if (cookie_name) {
 	    dd.getMenu().on('select', function (item) {
-                RT.cookie.setCookies({
+                RT.pagestate.setPageStates({
                     [cookie_name]: item.getData(),
                     [cookie_name + '_label']: item.getLabel()
                 });

@@ -67,7 +67,7 @@ class JavaScriptConverter implements MathParser\Interpreting\Visitors\Visitor
             throw new Exception("Invalid variable: $varName");
         }
         $this->foundVariables[] = $varName;
-        return 'RT.cookie.getCookie("'.$varName.'")';
+        return 'RT.pagestate.getPageState("'.$varName.'")';
     }
 
     public function visitFunctionNode(MathParser\Parsing\Nodes\FunctionNode $node)

@@ -1,3 +1,11 @@
+//
+// Store key/value pairs in session state,
+// shared between pages and stored on the
+// server.
+//
+// Use this for persistent state associated with
+// users, like their age, etc.
+//
 const utils = {
     hasCookie: function (name) {
         const riskiData = mw.config.get('riskiData') || {};
