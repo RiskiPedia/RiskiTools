@@ -103,6 +103,26 @@ class RiskiToolsHooks {
     }
 
     /**
+     * Make $columnName the first item in every row of $inputArray
+     */
+    private static function rearrangeArrayByColumn($inputArray, $columnName) {
+        $rearrangedArray = [];
+
+        foreach ($inputArray as $row) {
+            $newRow = [$columnName => $row[$columnName]];
+            // Add all other columns except the specified one
+            foreach ($row as $key => $value) {
+                if ($key !== $columnName) {
+                    $newRow[$key] = $value;
+                }
+            }
+            $rearrangedArray[] = $newRow;
+        }
+        return $rearrangedArray;
+    }
+
+
+    /**
      * Renders a dropdown from a DataTable2 table using a <dropdown> tag.
      * @param string $content Inner content of the tag (unused).
      * @param array $attribs Tag attributes (e.g., ['table' => '...', 'title' => '...']).
@@ -138,24 +158,24 @@ class RiskiToolsHooks {
         
         $column_names = array_keys($alldata[0]);
         $label_column = $options['label_column'] ?? $column_names[0];
-        $value_column = $options['value_column'] ?? $column_names[1] ?? $label_column;
-        $cookie_name = $options['cookie'] ?? $value_column;
         
-        foreach ([$label_column, $value_column] as $c) {
-            if (!in_array($c, $column_names)) {
-                $errmsg = 'dropdown: no column named ' . htmlspecialchars($c);
-                $errmsg .= ' (valid columns are: ' . htmlspecialchars(implode(' ', $column_names)) . ')';
-                return self::formatError($errmsg);
-            }
+        if (!in_array($label_column, $column_names)) {
+            $errmsg = 'dropdown: no column named ' . htmlspecialchars($label_column);
+            $errmsg .= ' (valid columns are: ' . htmlspecialchars(implode(' ', $column_names)) . ')';
+            return self::formatError($errmsg);
+        }
+        // For simplicity, we re-arrange the array so the label column is always first:
+        if ($label_column != $column_names[0]) {
+            $alldata = self::rearrangeArrayByColumn($alldata, $label_column);
         }
         
-        $data = array_combine(array_column($alldata, $label_column), array_column($alldata, $value_column));
+        $data = json_encode($alldata);
         
         $attributes = [
             'data-title' => $title,
-            'data-cookie_name' => $cookie_name
         ];
-        $output = self::generateSpanOutput('DropDown', json_encode($data), $attributes, ['hidden' => '']);
+        $output = self::generateSpanOutput('DropDown', $data, $attributes, ['hidden' => '']);
+
         return $output;
     }
 
