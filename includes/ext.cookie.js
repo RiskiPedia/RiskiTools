@@ -1,7 +1,7 @@
 const utils = {
     hasCookie: function (name) {
         const riskiData = mw.config.get('riskiData') || {};
-        return name in riskiData; // Returns true if name exists, false otherwise
+        return name in riskiData;
     },
     getCookie: function (name) {
         const riskiData = mw.config.get('riskiData') || {};
@@ -10,35 +10,55 @@ const utils = {
         }
         return riskiData[name];
     },
-    setCookie: function (name, value) {
-       if (typeof name !== 'string' || name.trim() === '' || value === undefined) {
-            console.error('Invalid name or value:', name, value);
+    setCookies: function (nameValuePairs) {
+        if (!nameValuePairs || typeof nameValuePairs !== 'object') {
+            console.error('RT.setCookies: Invalid nameValuePairs:', nameValuePairs);
             return;
         }
 
-        let riskiData = mw.config.get('riskiData') || {}
-        riskiData[name] = value;
+        const riskiData = mw.config.get('riskiData') || {};
+        const updates = {};
+
+        // Validate and collect updates
+        for (const [name, value] of Object.entries(nameValuePairs)) {
+            if (typeof name !== 'string' || name.trim() === '' || value === undefined) {
+                console.error('RT.setCookies: Invalid name or value:', name, value);
+                continue;
+            }
+            riskiData[name] = value;
+            updates[name] = value;
+        }
+
+        // Skip if no valid updates
+        if (Object.keys(updates).length === 0) {
+            console.warn('RT.setCookies: No valid updates to process');
+            return;
+        }
+
+        // Update client-side state
         mw.config.set('riskiData', riskiData);
-        mw.hook('riskiData.changed').fire(); // Trigger update
 
-        var updates = {};
-        updates[name]=value;
+        // Trigger hook once
+        mw.hook('riskiData.changed').fire();
 
+        // Send updates to server
         new mw.Api().postWithToken('csrf', {
             action: 'updateriskidata',
             updates: JSON.stringify(updates)
-        }).done(function(data) {
-            if (data.success) {
-                console.log('Updated:', pairs);
+        }).then(function (data) {
+            if (data.updateriskidata?.success) {
+                console.log('RT.setCookies: Updated:', updates);
+            } else {
+                console.warn('RT.setCookies: Update succeeded but unexpected response:', data);
             }
-        }).fail(function(err) {
-            console.error('Update failed:', err);
-            if (err.error) {
-                console.log('Error details:', err.error);
-            }
+        }).catch(function (err) {
+            console.error('RT.setCookies: Update failed:', err);
         });
+    },
+    setCookie: function (name, value) {
+        this.setCookies({ [name]: value });
     }
-}
+};
 
 window.RT = window.RT || {};
 window.RT.cookie = utils;
