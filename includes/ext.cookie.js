@@ -45,12 +45,6 @@ const utils = {
         new mw.Api().postWithToken('csrf', {
             action: 'updateriskidata',
             updates: JSON.stringify(updates)
-        }).then(function (data) {
-            if (data.updateriskidata?.success) {
-                console.log('RT.setCookies: Updated:', updates);
-            } else {
-                console.warn('RT.setCookies: Update succeeded but unexpected response:', data);
-            }
         }).catch(function (err) {
             console.error('RT.setCookies: Update failed:', err);
         });
