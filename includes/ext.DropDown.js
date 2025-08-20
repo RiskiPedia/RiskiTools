@@ -35,8 +35,10 @@ mw.loader.using(['oojs-ui', 'ext.cookie'], function () {
 	// Update cookie when value changes
 	if (cookie_name) {
 	    dd.getMenu().on('select', function (item) {
-		RT.cookie.setCookie(cookie_name, item.getData());
-                RT.cookie.setCookie(cookie_name+'_label', item.getLabel());
+                RT.cookie.setCookies({
+                    [cookie_name]: item.getData(),
+                    [cookie_name + '_label']: item.getLabel()
+                });
 	    });
 	}
 	return dd;
