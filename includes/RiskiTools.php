@@ -121,6 +121,23 @@ class RiskiToolsHooks {
         return $rearrangedArray;
     }
 
+    /**
+     * Make referring to a DataTable2 table by name convenient:
+     * If a fully-qualified name is not given, automatically look
+     * for the table on the current page OR a Data/ subpage.
+     * Returns null if tableName can't be found.
+     */
+    public static function fullyResolveDT2Title($tableName, $pageTitle) {
+        $dt2db = DataTable2::singleton()->getDatabase();
+
+        foreach ([$tableName, "$pageTitle:$tableName", "$pageTitle/Data:$tableName"] as $t) {
+            $fqTable = DataTable2Parser::table2title($t);
+            if ($dt2db->getColumns($fqTable->getDBkey())) {
+                return $fqTable;
+            }
+        }
+        return null;
+    }
 
     /**
      * Renders a dropdown from a DataTable2 table using a <dropdown> tag.
@@ -145,11 +162,15 @@ class RiskiToolsHooks {
             return self::formatError('dropdown: missing table attribute');
         }
         
-        $table = DataTable2Parser::table2title($options['table']);
+        $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText());
+        if ($table === null) {
+            return self::formatError('dropdown: cannot find DataTable2 table ' . htmlspecialchars($options['table']));
+        }
+
         $title = $options['title'] ?? 'Select';
         $alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
         if (count($alldata) < 1) {
-            return self::formatError('dropdown: missing/empty DataTable2 table ' . htmlspecialchars($table));
+            return self::formatError('dropdown: empty DataTable2 table ' . htmlspecialchars($table));
         }
         
         foreach ($alldata as &$item) {
