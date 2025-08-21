@@ -125,7 +125,8 @@ class RiskiToolsHooks {
      * Make referring to a DataTable2 table by name convenient:
      * If a fully-qualified name is not given, automatically look
      * for the table on the current page OR a Data/ subpage.
-     * Returns null if tableName can't be found.
+     * Returns null if tableName can't be found, otherwise returns
+     * a Title object that is the fully-qualified name.
      */
     public static function fullyResolveDT2Title($tableName, $pageTitle) {
         $dt2db = DataTable2::singleton()->getDatabase();
@@ -316,6 +317,35 @@ END;
     }
 
     /**
+     * Make referring to a RiskModel by name convenient:
+     * If a fully-qualified name is not given, automatically look
+     * for the model on the current page OR a Data/ subpage.
+     * Returns null if modelName can't be found, otherwise returns
+     * the riskModel data (row from the database)
+     */
+    public static function fetchRiskModel($modelName, $pageTitle) {
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
+        foreach ([$modelName, "$pageTitle:$modelName", "$pageTitle/Data:$modelName"] as $t) {
+
+            list($pt, $mn) = self::splitAtLastColon($t);
+            if (!$mn) { continue; }
+            $title = Title::newFromText($pt);
+            if (!$title || !$title->exists()) { continue; }
+            $pageId = $title->getArticleID();
+
+            $result = $db->select(
+                'riskitools_riskmodel',
+                ['rm_expression','rm_text'],
+                ['rm_page_id' => $pageId, 'rm_name' => $mn],
+                __METHOD__
+                );
+            if ($result->numRows() == 0) { continue; }
+            return $result->fetchRow();
+        }
+        return null;
+    }
+
+    /**
      * Renders a <RiskDisplay>
      *
      * @param string $content Inner content of the tag (unused).
@@ -336,29 +366,11 @@ END;
            return self::formatError('riskdisplay: missing model attribute');
         }
 
-        list($pageTitle, $model) = self::splitAtLastColon($options['model']);
-        if ($model == "") {
-           return self::formatError('riskdisplay: missing model name');
+        $row = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
+        if ($row === null) {
+            return self::formatError("riskdisplay: can't find riskmodel named ".$options['model']);
         }
 
-        $title = Title::newFromText($pageTitle);
-        if (!$title || !$title->exists()) {
-           return self::formatError("riskdisplay: page \"$pageTitle\" does not exist.");
-        }
-        $pageId = $title->getArticleID();
-
-        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
-
-        $result = $db->select(
-            'riskitools_riskmodel',
-            ['rm_expression','rm_text'],
-            ['rm_page_id' => $pageId, 'rm_name' => $model],
-            __METHOD__
-            );
-        if ($result->numRows() == 0) {
-            return self::formatError("riskdisplay: model \"$model\" not found on page \"$pageTitle\"");
-        }
-        $row = $result->fetchRow();
         $text = $row['rm_text'];
         $expression = $row['rm_expression'];
 
@@ -366,7 +378,6 @@ END;
         if ($errMsg) {
             return self::formatError("riskdisplay $expression: $errMsg");
         }
-
 
         $attributes = [
             'data-jscode' => $jscode,
