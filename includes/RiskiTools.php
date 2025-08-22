@@ -212,6 +212,9 @@ class RiskiToolsHooks {
         $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_PRIMARY );
         $pageId = $wikiPage->getId();
 
+        /* Ignore RiskModel tags inside <nowiki>...</nowiki> */
+        $content = preg_replace('/<nowiki>.*?<\/nowiki>/is', '', $content);
+
         /* Grab all the <riskmodel> tags on the page */
         Parser::extractTagsAndParams( [ 'riskmodel' ], $content, $riskmodels );
         /* Delete old data */
