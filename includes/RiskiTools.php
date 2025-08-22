@@ -220,6 +220,9 @@ class RiskiToolsHooks {
         /* Delete old data */
         $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
 
+        /* RiskModel names have to be unique on a page */
+        $seenNames = [];
+
         /* Insert new data */
         foreach ($riskmodels as $riskmodel) {
             [ $element, $content, $args ] = $riskmodel;
@@ -227,6 +230,9 @@ class RiskiToolsHooks {
 
             $expression = $args['calculation'] ?? '';
             $name = $args['name'] ?? '';
+
+            if (isset($seenNames[$name])) { continue; }
+            $seenNames[$name] = true;
 
             $db->insert( 'riskitools_riskmodel',
                 [ 'rm_page_id' => $pageId,
