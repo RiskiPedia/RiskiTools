@@ -297,7 +297,7 @@ class RiskiToolsHooks {
         if ($errMsg) {
             return self::formatError("riskmodel $expression: $errMsg");
         }
-        
+
         $pageTitle = $parser->getTitle()->getFullText();
         $fullRiskModelTitle = $pageTitle . ':' . $options['name'];
 
@@ -307,8 +307,9 @@ class RiskiToolsHooks {
         $jscode = htmlspecialchars($jscode);
         $output = <<<END
 <pre>
-Name: $fullRiskModelTitle
-Code: $jscode
+  RiskModel: $fullRiskModelTitle
+Calculation: $expression
+    Content: $content
 </pre> 
 END;
         return $output;
@@ -358,7 +359,7 @@ END;
      * Renders a <RiskDisplay>
      *
      * @param string $content Inner content of the tag (unused).
-     * @param array $attribs Tag attributes (e.g., ['calculation' => 'x+y']).
+     * @param array $attribs Tag attributes
      * @param Parser $parser The MediaWiki parser instance.
      * @param PPFrame $frame The preprocessor frame.
      * @return string Output wikitext.
@@ -371,18 +372,24 @@ END;
 
         $options = self::processTagAttributes($attribs);
         
-        if (!isset($options['model'])) {
-           return self::formatError('riskdisplay: missing model attribute');
+        if (!isset($options['model']) && !isset($options['calculation'])) {
+            return self::formatError('riskdisplay: missing model= or calculation=');
         }
-
-        $row = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
-        if ($row === null) {
-            return self::formatError("riskdisplay: can't find riskmodel named ".$options['model']);
+        if (isset($options['model']) && isset($options['calculation'])) {
+            return self::formatError('riskdisplay: specify either model or calculation, not both.');
         }
-
-        $text = $row['rm_text'];
-        $expression = $row['rm_expression'];
-
+        if (isset($options['model'])) {
+            $row = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
+            if ($row === null) {
+                return self::formatError("riskdisplay: can't find riskmodel named ".$options['model']);
+            }
+            $text = $row['rm_text'];
+            $expression = $row['rm_expression'];
+        } else {
+            $text = $content;
+            $expression = $options['calculation'];
+        }
+        
         list($jscode, $vars, $errMsg) = convertToJavaScript($expression);
         if ($errMsg) {
             return self::formatError("riskdisplay $expression: $errMsg");
