@@ -383,7 +383,11 @@ END;
             if ($row === null) {
                 return self::formatError("riskdisplay: can't find riskmodel named ".$options['model']);
             }
-            $text = $row['rm_text'];
+            if (trim($content) == "") {
+                $text = $row['rm_text'];
+            } else {
+                $text = $content;
+            }
             $expression = $row['rm_expression'];
         } else {
             $text = $content;
