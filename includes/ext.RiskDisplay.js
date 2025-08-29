@@ -1,3 +1,9 @@
+
+// Make keys/values safe for the Template syntax
+function escapeForTemplate(str) {
+    return String(str).replace(/[^a-zA-Z0-9_+,.!@#$%^*:;\- ]/g, ch => `&#${ch.charCodeAt(0)};`);
+};
+
 mw.loader.using(['oojs-ui'], function () {
     // Now OOUI is loaded and we can use it
 
@@ -11,7 +17,14 @@ mw.loader.using(['oojs-ui'], function () {
 
             try {
                 const result = eval(jscode); // jscode is server-generated, so we know it's safe
-                const updatedText = originalText.replace(/{result}/g, result);
+                let updatedText = originalText.replace(/{result}/g, result);
+
+                // Make page state available to Templates (or whatever) by replacing {pagestate}
+                // with Template-argument-friendly key1=value1|key2=value2|..etc
+                const ps = Object.entries(window.RT.pagestate.allPageState())
+                        .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
+                        .join('|');
+                updatedText = updatedText.replace(/{pagestate}/g, ps);
 
                 // Send the text to the server to parse (surrounded by a unique string
                 // because we want to strip out the extraneous div's and p's the server
