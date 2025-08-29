@@ -18,6 +18,9 @@ const utils = {
         }
         return riskiData[name];
     },
+    allCookies: function() {
+        return mw.config.get('riskiData') || {};
+    },
     setCookies: function (nameValuePairs) {
         if (!nameValuePairs || typeof nameValuePairs !== 'object') {
             console.error('RT.setCookies: Invalid nameValuePairs:', nameValuePairs);

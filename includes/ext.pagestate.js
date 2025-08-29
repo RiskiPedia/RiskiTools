@@ -20,6 +20,10 @@ const utils = {
         }
         return riskiData[name];
     },
+    allPageState: function() {
+        const cookies = window.RT.cookie.allCookies();
+        return { ...cookies, ...window.RT.pagedata };
+    },
     setPageStates: function (nameValuePairs) {
         if (!nameValuePairs || typeof nameValuePairs !== 'object') {
             console.error('RT.setPageStates: Invalid nameValuePairs:', nameValuePairs);
