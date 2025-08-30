@@ -204,6 +204,8 @@ class RiskiToolsHooks {
     /**
      * Update the riskitools_riskmodel database when a page containing a <riskmodel> tag is
      * changed.
+     * AND if the edit is to a sub-page, purge the parent page cache (so changes to
+     * a /Data subpage are reflected in the parent page immediately).
      *
      * Called when a revision was inserted due to an edit, file upload, import or page move.
      */
@@ -240,6 +242,20 @@ class RiskiToolsHooks {
                   'rm_text' => $content ?? '',
                   'rm_name' => $name
                 ]);
+        }
+
+        // Get the title of the edited page
+        $title = $wikiPage->getTitle();
+        $titleText = $title->getPrefixedText();
+
+        // Check if the page is a subpage, and if it is, purge parent page's cache:
+        if ( strpos( $titleText, '/' ) !== false ) {
+            $parentTitleText = preg_replace( '/\/[^\/]+$/', '', $titleText );
+            $parentTitle = Title::newFromText( $parentTitleText );
+            if ( $parentTitle && $parentTitle->exists() ) {
+                $wikiPage = MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle( $parentTitle );
+                $wikiPage->doPurge();
+            }
         }
     }
 
