@@ -28,8 +28,9 @@ mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
 	// Note: Grok suggested another way to do this by creating a hidden
 	// canvas, rendering to it, and then getting the width. That might
 	// be better.
-	const pxPerChar = 10;
-        const maxWidth = Math.max(...data.map(row => Object.keys(row)[0].length * pxPerChar), title.length * pxPerChar);
+	const pxPerChar = 8;
+        const maxStringLength = Math.max(...data.map(item => item[Object.keys(item)[0]].length), title.length);
+        const maxWidth = maxStringLength * pxPerChar;
         // Add padding and dropdown icon (approximate)
         const padding = 20; // OOUI padding
         const iconWidth = 20; // Dropdown arrow
