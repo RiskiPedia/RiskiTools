@@ -197,7 +197,9 @@ class RiskiToolsHooks {
         $attributes = [
             'data-title' => $title,
         ];
-        $output = self::generateSpanOutput('DropDown', $data, $attributes, ['hidden' => '']);
+        if (isset($options['default'])) { $attributes['data-default'] = $options['default']; }
+        if (isset($options['default-index'])) { $attributes['data-default-index'] = $options['default-index']; }
+        $output = self::generateSpanOutput('DropDown', $data, $attributes); // , ['hidden' => '']);
 
         return $output;
     }

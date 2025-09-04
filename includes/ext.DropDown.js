@@ -1,27 +1,39 @@
 mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
-    // Now OOUI is loaded and we can use it
+    'use strict';
 
-    // Create an OOUI dropdown
-    function createDropDown(title, cookie_name, data){
-	let menuOptions = data.map(row => {
-            // Get the first key of the row object
+    function createDropDown(title, data, defaultValue, defaultIndex) {
+	const menuOptions = data.map(row => {
             const firstKey = Object.keys(row)[0];
             // JSON encode the entire row for the data property
             const jsonEncodedRow = JSON.stringify(row);
-            // Create a new OO.ui.MenuOptionWidget
             return new OO.ui.MenuOptionWidget({
                 label: row[firstKey],
                 data: jsonEncodedRow
             });
         });
-	let dd = new OO.ui.DropdownWidget( {
+	const dd = new OO.ui.DropdownWidget( {
 	    label: title,
-	    menu: {
-		items: menuOptions
-	    }
+	    menu: { items: menuOptions }
 	});
 	
-        // TODO: set initial state if there's a cookie...
+        // Helper: programmatically select an item and propagate state
+        function applySelectionByItem(item) {
+            if (!item) return;
+            dd.getMenu().selectItem(item);
+            dd.setLabel(item.getLabel());
+            const row = JSON.parse(item.getData());
+            RT.pagestate.setPageStates(row); // behave as if the user selected it
+        }
+
+        // Apply default (index takes precedence if provided and valid)
+        if (typeof defaultIndex === 'number' && menuOptions[defaultIndex]) {
+            applySelectionByItem(menuOptions[defaultIndex]);
+        } else if (defaultValue) {
+            const matchByLabel = menuOptions.find(opt => opt.getLabel() === defaultValue);
+            if (matchByLabel) {
+                applySelectionByItem(matchByLabel);
+            }
+        }
 
 	// Calculate a reasonable size based on text length
 	// Calculate width: pxPerChar pixels per character for longest label
@@ -38,19 +50,30 @@ mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
 
 	// Update cookie when value changes
         dd.getMenu().on('select', function (item) {
-            row = JSON.parse(item.getData());
+            const row = JSON.parse(item.getData());
             RT.pagestate.setPageStates(row);
 	});
 	return dd;
     }
 
     // All the class="DropDown" elements on the page...
-    $('.DropDown').each(function(index, element) {
-	let e = $(element);
-	const data = JSON.parse(e.text());
-	const title = e.data('title');
-	const cookie_name = e.data('cookie_name');
-	e.replaceWith(createDropDown(title, cookie_name, data).$element);
+    $('.DropDown').each(function(_i, el) {
+	const $el = $(el);
+	const data = JSON.parse($el.text());
+	const title = $el.data('title');
+
+        // Default attributes:
+        //   data-default="Label text"
+        //   data-default-index="2"    (0-based in this example)
+        let defaultValue = $el.data('default');
+        let defaultIndex = $el.data('default-index');
+
+        // Coerce defaultIndex to a Number if present
+        if (defaultIndex !== undefined) {
+            defaultIndex = Number(defaultIndex);
+            if (!Number.isFinite(defaultIndex)) defaultIndex = undefined;
+        }
+	$el.replaceWith(createDropDown(title, data, defaultValue, defaultIndex).$element);
     });
 });
 
