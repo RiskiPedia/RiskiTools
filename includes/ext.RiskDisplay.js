@@ -17,13 +17,19 @@ mw.loader.using(['oojs-ui'], function () {
 
             try {
                 const result = eval(jscode); // jscode is server-generated, so we know it's safe
-                let updatedText = originalText.replace(/{result}/g, result);
 
-                // Make page state available to Templates (or whatever) by replacing {pagestate}
+                // Let editors use either {{result}} (like a WikiMedia Template named param) or
+                // just {result}:
+                let updatedText = originalText.replace(/{{result}}/g, result);
+                updatedText = updatedText.replace(/{result}/g, result);
+
+                // Make page state available to Templates (or whatever) by replacing {{pagestate}}
                 // with Template-argument-friendly key1=value1|key2=value2|..etc
-                const ps = Object.entries(window.RT.pagestate.allPageState())
+                const allPageState = window.RT.pagestate.allPageState();
+                const ps = Object.entries(allPageState)
                         .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
                         .join('|');
+                updatedText = updatedText.replace(/{{pagestate}}/g, ps);
                 updatedText = updatedText.replace(/{pagestate}/g, ps);
 
                 // Send the text to the server to parse (surrounded by a unique string
