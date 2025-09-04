@@ -420,7 +420,7 @@ END;
             'data-jscode' => $jscode,
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateSpanOutput("RiskDisplay", $text, $attributes,); // ['hidden' => '']);
+        $output = self::generateSpanOutput("RiskDisplay", $text, $attributes);
 
         return $output;
     }

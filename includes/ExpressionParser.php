@@ -122,6 +122,9 @@ function convertToJavaScript(string $expression, array $allowedVariables = []): 
     try {
         $parser = new RiskModelExpressionParser();
         $ast = $parser->parse($expression);
+        if (is_null($ast)) {
+            throw new Exception("Bad expression: '$expression'");
+        }
         $converter = new JavaScriptConverter($allowedVariables);
         return [
             $ast->accept($converter),
