@@ -27,6 +27,11 @@
             "scripts": [
                 "extensions/RiskiTools/includes/ext.RiskDisplay.js"
             ]
+        },
+        "ext.RiskParameter": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.RiskParameter.js"
+            ]
         }
     },
     "Hooks": {

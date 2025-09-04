@@ -15,6 +15,7 @@ class RiskiToolsHooks {
         $parser->setHook('dropdown', [self::class, 'renderDropDown']);
         $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
         $parser->setHook('riskdisplay', [self::class, 'renderRiskDisplay']);
+        $parser->setHook('riskparameter', [self::class, 'renderRiskParameter']);
         return true;
     }
 
@@ -421,6 +422,24 @@ END;
         ];
         $output = self::generateSpanOutput("RiskDisplay", $text, $attributes,); // ['hidden' => '']);
 
+        return $output;
+    }
+
+    /**
+     * Renders a <RiskParameter>
+     *
+     * @param string $content Inner content of the tag (unused).
+     * @param array $attribs Tag attributes
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param PPFrame $frame The preprocessor frame.
+     * @return string Output wikitext.
+     */
+    public static function renderRiskParameter($content, array $attribs, Parser $parser, PPFrame $frame) {
+        $parserOutput = $parser->getOutput();
+        $parserOutput->addModules(['ext.RiskParameter']);
+
+        $data = json_encode($attribs);
+        $output = self::generateSpanOutput('RiskParameter', $data, [], ['hidden' => '']);
         return $output;
     }
 }
