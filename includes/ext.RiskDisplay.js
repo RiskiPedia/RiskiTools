@@ -1,11 +1,21 @@
 
-// Make keys/values safe for the Template syntax
-function escapeForTemplate(str) {
-    return String(str).replace(/[^a-zA-Z0-9_+,.!@#$%^*:;\- ]/g, ch => `&#${ch.charCodeAt(0)};`);
-};
-
 mw.loader.using(['oojs-ui'], function () {
     // Now OOUI is loaded and we can use it
+
+    // Make keys/values safe for the Template syntax
+    function escapeForTemplate(str) {
+        return String(str).replace(/[^a-zA-Z0-9_+,.!@#$%^*:;\- ]/g, ch => `&#${ch.charCodeAt(0)};`);
+    }
+
+    function replacePlaceholders(text, data) {
+        let result = text;
+        for (const [key, value] of Object.entries(data)) {
+            // Replace all occurrences of {{key}}  or {key} with the value
+            result = result.replaceAll(`{{${key}}}`, value);
+            result = result.replaceAll(`{${key}}`, value);
+        }
+        return result;
+    }
 
     function updateRiskDisplays() {
         // All the class="RiskDisplay" elements on the page...
@@ -20,8 +30,7 @@ mw.loader.using(['oojs-ui'], function () {
 
                 // Let editors use either {{result}} (like a WikiMedia Template named param) or
                 // just {result}:
-                let updatedText = originalText.replace(/{{result}}/g, result);
-                updatedText = updatedText.replace(/{result}/g, result);
+                let updatedText = replacePlaceholders(originalText, { 'result' : result });
 
                 // Make page state available to Templates (or whatever) by replacing {{pagestate}}
                 // with Template-argument-friendly key1=value1|key2=value2|..etc
@@ -29,8 +38,10 @@ mw.loader.using(['oojs-ui'], function () {
                 const ps = Object.entries(allPageState)
                         .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
                         .join('|');
-                updatedText = updatedText.replace(/{{pagestate}}/g, ps);
-                updatedText = updatedText.replace(/{pagestate}/g, ps);
+                updatedText = replacePlaceholders(updatedText, { 'pagestate' : ps });
+
+                // And replace the individual pagestate {{key}} with their value:
+                updatedText = replacePlaceholders(updatedText, allPageState);
 
                 // Send the text to the server to parse (surrounded by a unique string
                 // because we want to strip out the extraneous div's and p's the server
