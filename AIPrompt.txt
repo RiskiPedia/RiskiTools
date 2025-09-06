@@ -10,31 +10,39 @@ The main URL for the riskipedia wiki is https://riski.wiki/
 
 The idea of RiskiPedia is to create an open, interactive "encyclopedia
 of risks". For example, a visitor might be interested in their risk of
-getting pregnant and would visit the RiskiPedia Pregnancy page to
+getting a sexually transmitted infection after sex with a new partner
+and would visit the RiskiPedia "Sick after Sex" page to
 explore the risks. There they will find some text describing what the
-major factors are that affect the chances of getting pregnant, and
+major factors are that affect the chances of getting an STI, and
 then interactive elements that let them customize the scenario for
-their circumstances-- for example, their age, the age of their
-partner, and what type of birth control they're using (if any). The
-page will dynamically update to display the chances of getting
-pregnant in terms that (hopefully) are easy to understand.
+their circumstances-- for example, if any birth control was used,
+what type of sex acts were performed, their partner's STI status
+(if known), etc. The page will dynamically update to show
+human-friendly risk numbers for relevant outcomes; e.g.
+"You have a 1 in 10 chance of getting Herpes" or
+"You have a 1 in 3 chance of getting any sexually transmitted infection."
 
-RiskiPedia will be a wiki -- anybody will be able to create pages and
+RiskiPedia is a wiki -- anybody will be able to create pages and
 upload data on any risk that interests them. Our challenge is to
 create easy-to-use WikiMedia extensions so moderately technically
 proficient people can create pages (like Wikipedia, where page
-creators have to have some knowledge of wiki markup and how to use the
-Wikimedia software). Every front-facing interactive page will have a
-page full of data and references and "risk models" that have the
-calculations that take the user-provided input and calculates risk
-numbers (e.g. "a 11 in 100 chance of getting pregnant per month").
+creators have to have some knowledge of wikitext markup and how to use the
+Wikimedia software).
 
-Data will be stored in <datatable2> tables.
+Data is stored in <datatable2> tables.
 
-I have already implemented a <DropDown> UI extension that shows data
-from a <datatable2> table and lets the user select one of the choices.
-The choice is stored in a session variable that is sent to the server
-and stored as part of their session (so choices are remembered and
-data like the user's age are remembered across different pages of the
-site).
+The following RiskiPedia-specific custom tags have been implemented:
 
+DataTable2 Doc:  https://riski.wiki/wiki/Help:DataTable2?action=raw
+RiskModel Doc:  https://riski.wiki/wiki/Help:RiskModel?action=raw
+DropDown Doc: https://riski.wiki/wiki/Help:DropDown?action=raw
+RiskDisplay Doc:  https://riski.wiki/wiki/Help:RiskDisplay?action=raw
+RiskParameter Doc:  https://riski.wiki/wiki/Help:RiskParameter?action=raw
+
+And the following Templates/Modules:
+
+One_In_X
+ProbabilityFormat Source: https://riski.wiki/wiki/Module:ProbabilityFormat
+
+RiskModel and datatable2 data are put on /Data pages, and define how to calculate risks.
+DropDown, RiskDisplay and RiskParameter are used on the main risk pages.
