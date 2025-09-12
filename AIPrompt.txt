@@ -2,7 +2,7 @@ Here is the context for the rest of our chat:
 
 I'm working on a project called RiskiPedia.
 It is implemented in PHP and JavaScript on top of the WikiMedia code base
-and the DataTable2 extension.
+and the RiskData extension.
 The public web server is a Google Cloud Debian Linux server based on
 the Bitnami package for MediaWiki 1.43.0
 Documentation:   https://docs.bitnami.com/google/apps/mediawiki/
@@ -29,11 +29,11 @@ proficient people can create pages (like Wikipedia, where page
 creators have to have some knowledge of wikitext markup and how to use the
 Wikimedia software).
 
-Data is stored in <datatable2> tables.
+Data is stored in <riskdata> tables.
 
 The following RiskiPedia-specific custom tags have been implemented:
 
-DataTable2 Doc:  https://riski.wiki/wiki/Help:DataTable2?action=raw
+RiskData Doc:  https://riski.wiki/wiki/Help:RiskData?action=raw
 RiskModel Doc:  https://riski.wiki/wiki/Help:RiskModel?action=raw
 DropDown Doc: https://riski.wiki/wiki/Help:DropDown?action=raw
 RiskDisplay Doc:  https://riski.wiki/wiki/Help:RiskDisplay?action=raw
@@ -44,5 +44,5 @@ And the following Templates/Modules:
 One_In_X
 ProbabilityFormat Source: https://riski.wiki/wiki/Module:ProbabilityFormat
 
-RiskModel and datatable2 data are put on /Data pages, and define how to calculate risks.
+RiskModel and riskdata data are put on /Data pages, and define how to calculate risks.
 DropDown, RiskDisplay and RiskParameter are used on the main risk pages.

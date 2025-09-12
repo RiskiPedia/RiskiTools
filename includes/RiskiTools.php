@@ -123,17 +123,17 @@ class RiskiToolsHooks {
     }
 
     /**
-     * Make referring to a DataTable2 table by name convenient:
+     * Make referring to a RiskData table by name convenient:
      * If a fully-qualified name is not given, automatically look
      * for the table on the current page OR a Data/ subpage.
      * Returns null if tableName can't be found, otherwise returns
      * a Title object that is the fully-qualified name.
      */
     public static function fullyResolveDT2Title($tableName, $pageTitle) {
-        $dt2db = DataTable2::singleton()->getDatabase();
+        $dt2db = RiskData::singleton()->getDatabase();
 
         foreach ([$tableName, "$pageTitle:$tableName", "$pageTitle/Data:$tableName"] as $t) {
-            $fqTable = DataTable2Parser::table2title($t);
+            $fqTable = RiskDataParser::table2title($t);
             if ($dt2db->getColumns($fqTable->getDBkey())) {
                 return $fqTable;
             }
@@ -142,19 +142,19 @@ class RiskiToolsHooks {
     }
 
     /**
-     * Renders a dropdown from a DataTable2 table using a <dropdown> tag.
+     * Renders a dropdown from a RiskData table using a <dropdown> tag.
      * @param string $content Inner content of the tag (unused).
      * @param array $attribs Tag attributes (e.g., ['table' => '...', 'title' => '...']).
      * @param Parser $parser The MediaWiki parser instance.
      * @param PPFrame $frame The preprocessor frame.
      * @return string Output wikitext.
-     * @throws MWException If DataTable2 is not loaded.
+     * @throws MWException If RiskData is not loaded.
      */
     public static function renderDropDown($content, array $attribs, Parser $parser, PPFrame $frame) {
-        if (!ExtensionRegistry::getInstance()->isLoaded('DataTable2')) {
-            throw new MWException('DataTable2 extension is required but not loaded.');
+        if (!ExtensionRegistry::getInstance()->isLoaded('RiskData')) {
+            throw new MWException('RiskData extension is required but not loaded.');
         }
-        $dt2 = DataTable2::singleton();
+        $dt2 = RiskData::singleton();
 
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.DropDown']);
@@ -166,13 +166,13 @@ class RiskiToolsHooks {
         
         $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText());
         if ($table === null) {
-            return self::formatError('dropdown: cannot find DataTable2 table ' . htmlspecialchars($options['table']));
+            return self::formatError('dropdown: cannot find RiskData table ' . htmlspecialchars($options['table']));
         }
 
         $title = $options['title'] ?? 'Select';
         $alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
         if (count($alldata) < 1) {
-            return self::formatError('dropdown: empty DataTable2 table ' . htmlspecialchars($table));
+            return self::formatError('dropdown: empty RiskData table ' . htmlspecialchars($table));
         }
         
         foreach ($alldata as &$item) {
