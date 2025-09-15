@@ -17,11 +17,21 @@ mw.loader.using(['oojs-ui'], function () {
         return result;
     }
 
+    /**
+     * Decodes a hex-encoded UTF-8 string back to its original form.
+     * @param {string} hex - The hex-encoded string.
+     * @returns {string} The decoded string.
+     */
+    function hexToString(hex) {
+        const bytes = new Uint8Array(hex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
+        return new TextDecoder().decode(bytes);
+    }
+
     function updateRiskDisplays() {
         // All the class="RiskDisplay" elements on the page...
         $('.RiskDisplay').each(function(index, element) {
 	    let e = $(element);
-	    const originalText = e.data('originalText');
+	    const originaltext = hexToString(e.data('originaltexthex'));
 	    const id = e.attr('id');
             const jscode = e.data('jscode');
 
@@ -30,7 +40,7 @@ mw.loader.using(['oojs-ui'], function () {
 
                 // Let editors use either {{result}} (like a WikiMedia Template named param) or
                 // just {result}:
-                let updatedText = replacePlaceholders(originalText, { 'result' : result });
+                let updatedText = replacePlaceholders(originaltext, { 'result' : result });
 
                 // Make page state available to Templates (or whatever) by replacing {{pagestate}}
                 // with Template-argument-friendly key1=value1|key2=value2|..etc
@@ -70,12 +80,6 @@ mw.loader.using(['oojs-ui'], function () {
             }
         });
     }
-
-    // Store original text and initialize
-    $('.RiskDisplay').each(function (index, element) {
-        let e = $(element);
-        e.data('originalText', e.text()); // Store original text with {result}
-    });
 
     // Initial update
     updateRiskDisplays();

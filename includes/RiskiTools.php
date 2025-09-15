@@ -420,9 +420,12 @@ END;
 
         $attributes = [
             'data-jscode' => $jscode,
+            // Avoid wiki parsing that seems to happen if $text is not
+            // encoded:
+            'data-originaltexthex' => bin2hex($text),
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateSpanOutput("RiskDisplay", $text, $attributes);
+        $output = self::generateSpanOutput("RiskDisplay", "", $attributes);
 
         return $output;
     }
