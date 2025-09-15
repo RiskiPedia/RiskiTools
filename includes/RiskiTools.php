@@ -324,6 +324,7 @@ class RiskiToolsHooks {
         // Output GUI widgets that let risk model creators
         // tweak inputs and observe the calculation output
         $jscode = htmlspecialchars($jscode);
+        $content = htmlspecialchars($content);
         $output = <<<END
 <pre>
   RiskModel: $fullRiskModelTitle
@@ -359,7 +360,7 @@ END;
             list($pt, $mn) = self::splitAtLastColon($t);
             if (!$mn) { continue; }
             $title = Title::newFromText($pt);
-            if (!$title || !$title->exists()) { continue; }
+            if (!$title->exists()) { continue; }
             $pageId = $title->getArticleID();
 
             $result = $db->select(
@@ -402,7 +403,7 @@ END;
             if ($row === null) {
                 return self::formatError("riskdisplay: can't find riskmodel named ".$options['model']);
             }
-            if (trim($content) == "") {
+            if (!$content || trim($content) == "") {
                 $text = $row['rm_text'];
             } else {
                 $text = $content;

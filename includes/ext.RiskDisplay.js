@@ -70,7 +70,7 @@ mw.loader.using(['oojs-ui'], function () {
                     const r = data.parse.text;
                     const startIndex = r.indexOf(uniquetext);
                     const endIndex = r.lastIndexOf(uniquetext);
-                    e.text(r.substring(startIndex + uniquetext.length, endIndex));
+                    e.html(r.substring(startIndex + uniquetext.length, endIndex));
                 } ).catch((error) => {
                     e.text('Error: Unable to update risk display');
                     console.error('API request failed:', error);
