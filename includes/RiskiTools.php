@@ -47,14 +47,14 @@ class RiskiToolsHooks {
     }
 
     /**
-     * Generates a sanitized HTML span element.
+     * Generates a sanitized HTML div or span element.
      * @param string $class CSS class for the span.
      * @param string $data Content inside the span.
      * @param array $attributes Key-value pairs for HTML attributes.
      * @param array $extraAttrs Additional attributes without values.
      * @return string HTML span element.
      */
-    private static function generateSpanOutput($class, $data, $attributes = [], $extraAttrs = []) {
+    private static function generateDivOrSpan($tag, $class, $data, $attributes = [], $extraAttrs = []) {
         $attrString = '';
         foreach ($attributes as $key => $value) {
             $attrString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
@@ -63,7 +63,7 @@ class RiskiToolsHooks {
             $attrString .= ' ' . htmlspecialchars($key) . ($value ? '="' . htmlspecialchars($value) . '"' : '');
         }
         $class = htmlspecialchars($class);
-        return "<span class=\"$class\" $attrString>$data</span>";
+        return "<$tag class=\"$class\" $attrString>$data</$tag>";
     }
 
     /**
@@ -199,7 +199,7 @@ class RiskiToolsHooks {
         ];
         if (isset($options['default'])) { $attributes['data-default'] = $options['default']; }
         if (isset($options['default-index'])) { $attributes['data-default-index'] = $options['default-index']; }
-        $output = self::generateSpanOutput('DropDown', $data, $attributes); // , ['hidden' => '']);
+        $output = self::generateDivOrSpan('span', 'DropDown', $data, $attributes); // , ['hidden' => '']);
 
         return $output;
     }
@@ -426,7 +426,7 @@ END;
             'data-originaltexthex' => bin2hex($text),
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateSpanOutput("RiskDisplay", "", $attributes);
+        $output = self::generateDivOrSpan("div", "RiskDisplay", "", $attributes);
 
         return $output;
     }
@@ -445,7 +445,7 @@ END;
         $parserOutput->addModules(['ext.RiskParameter']);
 
         $data = json_encode($attribs);
-        $output = self::generateSpanOutput('RiskParameter', $data, [], ['hidden' => '']);
+        $output = self::generateDivOrSpan('span', 'RiskParameter', $data, [], ['hidden' => '']);
         return $output;
     }
 }
