@@ -10,11 +10,29 @@ mw.loader.using(['oojs-ui'], function () {
     function replacePlaceholders(text, data) {
         let result = text;
         for (const [key, value] of Object.entries(data)) {
-            // Replace all occurrences of {{key}}  or {key} with the value
-            result = result.replaceAll(`{{${key}}}`, value);
+            // Replace all occurrences of {key} with the value
             result = result.replaceAll(`{${key}}`, value);
         }
         return result;
+    }
+
+    function matchPlaceholders(input) {
+        // Match { followed by allowed chars (letters, numbers, underscores, marks) then }
+        const potentialMatches = input.match(/\{[\p{L}\p{N}_\p{M}]+\}/gu) || [];
+
+        // Filter out double braces {{...}} and {...}}
+        // because those are template calls.
+        const validMatches = potentialMatches.filter(match => {
+            const startIndex = input.indexOf(match);
+            const before = input.slice(0, startIndex);
+            const after = input.slice(startIndex + match.length);
+
+            const isDoubleOpen = before.endsWith('{');
+            const isDoubleClose = after.startsWith('}');
+
+            return !isDoubleOpen && !isDoubleClose;
+        });
+        return validMatches.map(m => m.slice(1, -1));
     }
 
     /**
@@ -50,31 +68,36 @@ mw.loader.using(['oojs-ui'], function () {
                         .join('|');
                 updatedText = replacePlaceholders(updatedText, { 'pagestate' : ps });
 
-                // And replace the individual pagestate {{key}} with their value:
+                // And replace the individual pagestate {key} with their value:
                 updatedText = replacePlaceholders(updatedText, allPageState);
 
-                // Send the text to the server to parse (surrounded by a unique string
-                // because we want to strip out the extraneous div's and p's the server
-                // wraps it in)
-                const uniquetext = 'z3IP5fEV3B9qSE';
-                const wikitext = uniquetext+updatedText+uniquetext;
-                var api = new mw.Api();
-                api.get( {
-                    action: 'parse',
-                    format: 'json',
-                    formatversion: 2,
-                    contentmodel: 'wikitext',
-                    text: wikitext,
-                    prop: 'text'
-                } ).then( ( data ) => {
-                    const r = data.parse.text;
-                    const startIndex = r.indexOf(uniquetext);
-                    const endIndex = r.lastIndexOf(uniquetext);
-                    e.html(r.substring(startIndex + uniquetext.length, endIndex));
-                } ).catch((error) => {
-                    e.text('Error: Unable to update risk display');
-                    console.error('API request failed:', error);
-                });
+                // No placeholders left:
+                const placeholders = matchPlaceholders(updatedText);
+                if (placeholders.length == 0) {
+                    // Send the text to the server to parse (surrounded by a unique string
+                    // because we want to strip out the extraneous div's and p's the server
+                    // wraps it in)
+                    const uniquetext = 'z3IP5fEV3B9qSE';
+                    const wikitext = uniquetext+updatedText+uniquetext;
+                    var api = new mw.Api();
+                    e.html("<i>Calculating...</i>");
+                    api.get( {
+                        action: 'parse',
+                        format: 'json',
+                        formatversion: 2,
+                        contentmodel: 'wikitext',
+                        text: wikitext,
+                        prop: 'text'
+                    } ).then( ( data ) => {
+                        const r = data.parse.text;
+                        const startIndex = r.indexOf(uniquetext);
+                        const endIndex = r.lastIndexOf(uniquetext);
+                        e.html(r.substring(startIndex + uniquetext.length, endIndex));
+                    } ).catch((error) => {
+                        e.text('Error: Unable to update risk display');
+                        console.error('API request failed:', error);
+                    });
+                }
             } catch (error) {
                 e.text('');
             }
