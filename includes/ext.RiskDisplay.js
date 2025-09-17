@@ -51,14 +51,9 @@ mw.loader.using(['oojs-ui'], function () {
 	    let e = $(element);
 	    const originaltext = hexToString(e.data('originaltexthex'));
 	    const id = e.attr('id');
-            const jscode = e.data('jscode');
 
             try {
-                const result = eval(jscode); // jscode is server-generated, so we know it's safe
-
-                // Let editors use either {{result}} (like a WikiMedia Template named param) or
-                // just {result}:
-                let updatedText = replacePlaceholders(originaltext, { 'result' : result });
+                let updatedText = originaltext;
 
                 // Make page state available to Templates (or whatever) by replacing {{pagestate}}
                 // with Template-argument-friendly key1=value1|key2=value2|..etc
@@ -71,9 +66,8 @@ mw.loader.using(['oojs-ui'], function () {
                 // And replace the individual pagestate {key} with their value:
                 updatedText = replacePlaceholders(updatedText, allPageState);
 
-                // No placeholders left:
                 const placeholders = matchPlaceholders(updatedText);
-                if (placeholders.length == 0) {
+                if (placeholders.length == 0) { // No placeholders left:
                     // Send the text to the server to parse (surrounded by a unique string
                     // because we want to strip out the extraneous div's and p's the server
                     // wraps it in)

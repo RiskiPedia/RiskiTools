@@ -1,7 +1,6 @@
 CREATE TABLE IF NOT EXISTS riskitools_riskmodel (
     rm_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     rm_page_id INT UNSIGNED NOT NULL,
-    rm_expression TEXT NOT NULL,
     rm_text TEXT NOT NULL,
     rm_name VARCHAR(255) NOT NULL,
     PRIMARY KEY (rm_id),

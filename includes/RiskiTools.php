@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/autoload.php';
 
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Revision\RevisionRecord;
@@ -233,7 +232,6 @@ class RiskiToolsHooks {
             [ $element, $content, $args ] = $riskmodel;
             $options = self::processTagAttributes($args);
 
-            $expression = $args['calculation'] ?? '';
             $name = $args['name'] ?? '';
 
             if (isset($seenNames[$name])) { continue; }
@@ -241,7 +239,6 @@ class RiskiToolsHooks {
 
             $db->insert( 'riskitools_riskmodel',
                 [ 'rm_page_id' => $pageId,
-                  'rm_expression' => $expression,
                   'rm_text' => $content ?? '',
                   'rm_name' => $name
                 ]);
@@ -299,22 +296,11 @@ class RiskiToolsHooks {
      * @return string Output wikitext.
      */
     public static function renderRiskModel($content, array $attribs, Parser $parser, PPFrame $frame) {
-        require_once 'ExpressionParser.php';
-
         $parserOutput = $parser->getOutput();
         $options = self::processTagAttributes($attribs);
         
         if (!isset($options['name'])) {
             return self::formatError('riskmodel: missing name attribute');
-        }
-        if (!isset($options['calculation'])) {
-            return self::formatError('riskmodel: missing calculation attribute');
-        }
-        $expression = $options['calculation'];
-
-        list($jscode, $vars, $errMsg) = convertToJavaScript($expression);
-        if ($errMsg) {
-            return self::formatError("riskmodel $expression: $errMsg");
         }
 
         $pageTitle = $parser->getTitle()->getFullText();
@@ -323,12 +309,10 @@ class RiskiToolsHooks {
         // TODO:
         // Output GUI widgets that let risk model creators
         // tweak inputs and observe the calculation output
-        $jscode = htmlspecialchars($jscode);
         $content = htmlspecialchars($content);
         $output = <<<END
 <pre>
   RiskModel: $fullRiskModelTitle
-Calculation: $expression
     Content: $content
 </pre> 
 END;
@@ -385,19 +369,11 @@ END;
      * @return string Output wikitext.
      */
     public static function renderRiskDisplay($content, array $attribs, Parser $parser, PPFrame $frame) {
-        require_once 'ExpressionParser.php';
-
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.RiskDisplay']);
 
         $options = self::processTagAttributes($attribs);
         
-        if (!isset($options['model']) && !isset($options['calculation'])) {
-            return self::formatError('riskdisplay: missing model= or calculation=');
-        }
-        if (isset($options['model']) && isset($options['calculation'])) {
-            return self::formatError('riskdisplay: specify either model or calculation, not both.');
-        }
         if (isset($options['model'])) {
             $row = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
             if ($row === null) {
@@ -408,19 +384,11 @@ END;
             } else {
                 $text = $content;
             }
-            $expression = $row['rm_expression'];
         } else {
             $text = $content;
-            $expression = $options['calculation'];
         }
         
-        list($jscode, $vars, $errMsg) = convertToJavaScript($expression);
-        if ($errMsg) {
-            return self::formatError("riskdisplay $expression: $errMsg");
-        }
-
         $attributes = [
-            'data-jscode' => $jscode,
             // Avoid wiki parsing that seems to happen if $text is not
             // encoded:
             'data-originaltexthex' => bin2hex($text),
