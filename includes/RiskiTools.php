@@ -349,7 +349,7 @@ END;
 
             $result = $db->select(
                 'riskitools_riskmodel',
-                ['rm_expression','rm_text'],
+                ['rm_text'],
                 ['rm_page_id' => $pageId, 'rm_name' => $mn],
                 __METHOD__
                 );
