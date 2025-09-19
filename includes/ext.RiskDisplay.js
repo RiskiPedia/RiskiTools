@@ -73,6 +73,16 @@ mw.loader.using(['oojs-ui'], function () {
                     // wraps it in)
                     const uniquetext = 'z3IP5fEV3B9qSE';
                     const wikitext = uniquetext+updatedText+uniquetext;
+
+                    // Get the previously sent wikitext from the element's data store.
+                    const lastSentWikitext = e.data('lastSentWikitext');
+
+                    // If the wikitext hasn't changed, do nothing. This avoids a needless API call/ display refresh.
+                    if (wikitext === lastSentWikitext) {
+                        return; // Skips to the next element in the .each() loop.
+                    }
+                    
+
                     var api = new mw.Api();
                     e.html("<i>Calculating...</i>");
                     api.get( {
@@ -87,6 +97,7 @@ mw.loader.using(['oojs-ui'], function () {
                         const startIndex = r.indexOf(uniquetext);
                         const endIndex = r.lastIndexOf(uniquetext);
                         e.html(r.substring(startIndex + uniquetext.length, endIndex));
+                        e.data('lastSentWikitext', wikitext);
                     } ).catch((error) => {
                         e.text('Error: Unable to update risk display');
                         console.error('API request failed:', error);
