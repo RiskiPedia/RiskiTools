@@ -56,24 +56,32 @@ mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
 	return dd;
     }
 
-    // All the class="DropDown" elements on the page...
-    $('.DropDown').each(function(_i, el) {
-	const $el = $(el);
-	const data = JSON.parse($el.text());
-	const title = $el.data('title');
+    function updateDropDowns() {
+        // All the class="DropDown" elements on the page...
+        $('.DropDown').each(function(_i, el) {
+	    const $el = $(el);
+	    const data = JSON.parse($el.text());
+	    const title = $el.data('title');
 
-        // Default attributes:
-        //   data-default="Label text"
-        //   data-default-index="2"    (0-based in this example)
-        let defaultValue = $el.data('default');
-        let defaultIndex = $el.data('default-index');
+            // Default attributes:
+            //   data-default="Label text"
+            //   data-default-index="2"    (0-based in this example)
+            let defaultValue = $el.data('default');
+            let defaultIndex = $el.data('default-index');
 
-        // Coerce defaultIndex to a Number if present
-        if (defaultIndex !== undefined) {
-            defaultIndex = Number(defaultIndex);
-            if (!Number.isFinite(defaultIndex)) defaultIndex = undefined;
-        }
-	$el.replaceWith(createDropDown(title, data, defaultValue, defaultIndex).$element);
-    });
+            // Coerce defaultIndex to a Number if present
+            if (defaultIndex !== undefined) {
+                defaultIndex = Number(defaultIndex);
+                if (!Number.isFinite(defaultIndex)) defaultIndex = undefined;
+            }
+	    $el.replaceWith(createDropDown(title, data, defaultValue, defaultIndex).$element);
+        });
+    }
+
+    // Initial update
+    updateDropDowns();
+
+    // Listen for new DropDowns dynamically created:
+    mw.hook('riskiUI.changed').add(updateDropDowns);
 });
 

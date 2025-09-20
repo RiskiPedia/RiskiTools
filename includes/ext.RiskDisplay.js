@@ -83,13 +83,19 @@ mw.loader.using(['oojs-ui'], function () {
                     }
                     
 
+                    // Get current page context
+                    var pageTitle = mw.config.get('wgPageName');
+                    var namespace = mw.config.get('wgCanonicalNamespace');
+                    var fullTitle = namespace ? (namespace + ':' + pageTitle) : pageTitle;
+
                     var api = new mw.Api();
                     e.html("<i>Calculating...</i>");
                     api.get( {
                         action: 'parse',
                         format: 'json',
                         formatversion: 2,
-                        contentmodel: 'wikitext',
+                        title: fullTitle,
+                        pst: true,
                         text: wikitext,
                         prop: 'text'
                     } ).then( ( data ) => {
@@ -98,6 +104,7 @@ mw.loader.using(['oojs-ui'], function () {
                         const endIndex = r.lastIndexOf(uniquetext);
                         e.html(r.substring(startIndex + uniquetext.length, endIndex));
                         e.data('lastSentWikitext', wikitext);
+                        mw.hook('riskiUI.changed').fire(); // Trigger any new UI elements
                     } ).catch((error) => {
                         e.text('Error: Unable to update risk display');
                         console.error('API request failed:', error);
