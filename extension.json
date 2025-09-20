@@ -8,6 +8,11 @@
         "MediaWiki": ">= 1.35.0"
     },
     "ResourceModules": {
+        "ext.riskutils": {
+            "scripts": [
+                "includes/ext.riskutils.js"
+            ]
+        },
         "ext.cookie": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.cookie.js"
@@ -26,6 +31,9 @@
         "ext.RiskDisplay": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.RiskDisplay.js"
+            ],
+            "dependencies": [
+                "ext.riskutils"
             ]
         },
         "ext.RiskParameter": {

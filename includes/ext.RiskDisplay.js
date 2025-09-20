@@ -35,21 +35,11 @@ mw.loader.using(['oojs-ui'], function () {
         return validMatches.map(m => m.slice(1, -1));
     }
 
-    /**
-     * Decodes a hex-encoded UTF-8 string back to its original form.
-     * @param {string} hex - The hex-encoded string.
-     * @returns {string} The decoded string.
-     */
-    function hexToString(hex) {
-        const bytes = new Uint8Array(hex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
-        return new TextDecoder().decode(bytes);
-    }
-
     function updateRiskDisplays() {
         // All the class="RiskDisplay" elements on the page...
         $('.RiskDisplay').each(function(index, element) {
 	    let e = $(element);
-	    const originaltext = hexToString(e.data('originaltexthex'));
+	    const originaltext = mw.riskUtils.hexToString(e.data('originaltexthex'));
 	    const id = e.attr('id');
 
             try {
