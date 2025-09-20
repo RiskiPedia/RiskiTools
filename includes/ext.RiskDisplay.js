@@ -121,4 +121,5 @@ mw.loader.using(['oojs-ui'], function () {
 
     // Listen for UI data changes via custom hook
     mw.hook('riskiData.changed').add(updateRiskDisplays);
+    mw.hook('riskiUI.changed').add(updateRiskDisplays);
 });
