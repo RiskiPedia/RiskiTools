@@ -403,8 +403,8 @@ END;
     /**
      * Renders a <RiskParameter>
      *
-     * @param string $content Inner content of the tag (unused).
-     * @param array $attribs Tag attributes
+     * @param string $content Inner content of the tag; key=value (one pair per line)
+     * @param array $attribs Tag attributes (unused)
      * @param Parser $parser The MediaWiki parser instance.
      * @param PPFrame $frame The preprocessor frame.
      * @return string Output wikitext.
@@ -413,12 +413,11 @@ END;
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.riskparameter']);
 
-        $data = json_encode($attribs);
         $attributes = [
-            'data-attribshex' => bin2hex($data),
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateDivOrSpan('span', 'RiskParameter', "", $attributes, ['hidden' => '']);
+        $output = self::generateDivOrSpan('span', 'RiskParameter', $content, $attributes, ['hidden' => '']);
+
         return $output;
     }
 }
