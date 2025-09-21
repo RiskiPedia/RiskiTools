@@ -415,7 +415,7 @@ END;
 
         $data = json_encode($attribs);
         $attributes = [
-            'data-attribshex' => bin2hex($text),
+            'data-attribshex' => bin2hex($data),
             'id' => bin2hex(random_bytes(16))
         ];
         $output = self::generateDivOrSpan('span', 'RiskParameter', "", $attributes, ['hidden' => '']);
