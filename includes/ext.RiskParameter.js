@@ -3,11 +3,11 @@
 // <span class="RiskParameter" hidden>{key1=value1, key2=value2}</span>
 // On load we just need to put the key/value pairs into the page state:
 // 
-mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
+mw.loader.using(['ext.RiskUtils','oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
     function updateRiskParams() {
         $('.RiskParameter').each(function (index, element) {
             let e = $(element);
-	    const data = JSON.parse(e.text());
+	    const data = JSON.parse(mw.RiskUtils.hexToString(e.data('attribshex')));
             RT.pagestate.setPageStates(data);
         });
     }

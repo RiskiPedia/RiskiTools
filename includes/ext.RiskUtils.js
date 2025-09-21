@@ -1,5 +1,5 @@
 // Create a namespace to avoid global scope pollution
-mw.riskUtils = mw.riskUtils || {};
+mw.RiskUtils = mw.RiskUtils || {};
 
 (function (utils) {
     'use strict';
@@ -14,5 +14,5 @@ mw.riskUtils = mw.riskUtils || {};
         return new TextDecoder().decode(bytes);
     }
 
-}(mw.riskUtils));
+}(mw.RiskUtils));
 

@@ -1,5 +1,5 @@
 
-mw.loader.using(['oojs-ui'], function () {
+mw.loader.using(['ext.RiskUtils','oojs-ui'], function () {
     // Now OOUI is loaded and we can use it
 
     // Make keys/values safe for the Template syntax
@@ -39,7 +39,7 @@ mw.loader.using(['oojs-ui'], function () {
         // All the class="RiskDisplay" elements on the page...
         $('.RiskDisplay').each(function(index, element) {
 	    let e = $(element);
-	    const originaltext = mw.riskUtils.hexToString(e.data('originaltexthex'));
+	    const originaltext = mw.RiskUtils.hexToString(e.data('originaltexthex'));
 	    const id = e.attr('id');
 
             try {

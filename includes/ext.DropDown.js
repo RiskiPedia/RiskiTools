@@ -1,4 +1,4 @@
-mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
+mw.loader.using(['ext.RiskUtils', 'oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
     'use strict';
 
     function createDropDown(title, data, defaultValue, defaultIndex) {
@@ -60,7 +60,7 @@ mw.loader.using(['oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
         // All the class="DropDown" elements on the page...
         $('.DropDown').each(function(_i, el) {
 	    const $el = $(el);
-	    const data = JSON.parse($el.text());
+	    const data = JSON.parse(mw.RiskUtils.hexToString($el.data('choiceshex')));
 	    const title = $el.data('title');
 
             // Default attributes:

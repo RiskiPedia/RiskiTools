@@ -1,6 +1,6 @@
 {
     "name": "RiskiTools",
-    "author": "Will Andresen",
+    "author": "Will Andresen, Gavin Andresen",
     "description": "Adds hooks to inject the custom JS that makes Riskipedia possible",
     "version": "1.0",
     "type": "parserhook",
@@ -8,9 +8,9 @@
         "MediaWiki": ">= 1.35.0"
     },
     "ResourceModules": {
-        "ext.riskutils": {
+        "ext.RiskUtils": {
             "scripts": [
-                "includes/ext.riskutils.js"
+                "extensions/RiskiTools/includes/ext.RiskUtils.js"
             ]
         },
         "ext.cookie": {
@@ -31,9 +31,6 @@
         "ext.RiskDisplay": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.RiskDisplay.js"
-            ],
-            "dependencies": [
-                "ext.riskutils"
             ]
         },
         "ext.RiskParameter": {

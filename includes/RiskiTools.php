@@ -195,10 +195,11 @@ class RiskiToolsHooks {
         
         $attributes = [
             'data-title' => $title,
+            'data-choiceshex' => bin2hex($data)
         ];
         if (isset($options['default'])) { $attributes['data-default'] = $options['default']; }
         if (isset($options['default-index'])) { $attributes['data-default-index'] = $options['default-index']; }
-        $output = self::generateDivOrSpan('span', 'DropDown', $data, $attributes); // , ['hidden' => '']);
+        $output = self::generateDivOrSpan('span', 'DropDown', '', $attributes); // , ['hidden' => '']);
 
         return $output;
     }
@@ -413,7 +414,11 @@ END;
         $parserOutput->addModules(['ext.RiskParameter']);
 
         $data = json_encode($attribs);
-        $output = self::generateDivOrSpan('span', 'RiskParameter', $data, [], ['hidden' => '']);
+        $attributes = [
+            'data-attribshex' => bin2hex($text),
+            'id' => bin2hex(random_bytes(16))
+        ];
+        $output = self::generateDivOrSpan('span', 'RiskParameter', "", $attributes, ['hidden' => '']);
         return $output;
     }
 }
