@@ -156,7 +156,7 @@ class RiskiToolsHooks {
         $dt2 = RiskData::singleton();
 
         $parserOutput = $parser->getOutput();
-        $parserOutput->addModules(['ext.DropDown']);
+        $parserOutput->addModules(['ext.dropdown']);
         
         $options = self::processTagAttributes($attribs);
         if (!isset($options['table'])) {
@@ -371,7 +371,7 @@ END;
      */
     public static function renderRiskDisplay($content, array $attribs, Parser $parser, PPFrame $frame) {
         $parserOutput = $parser->getOutput();
-        $parserOutput->addModules(['ext.RiskDisplay']);
+        $parserOutput->addModules(['ext.riskdisplay']);
 
         $options = self::processTagAttributes($attribs);
         
@@ -411,7 +411,7 @@ END;
      */
     public static function renderRiskParameter($content, array $attribs, Parser $parser, PPFrame $frame) {
         $parserOutput = $parser->getOutput();
-        $parserOutput->addModules(['ext.RiskParameter']);
+        $parserOutput->addModules(['ext.riskparameter']);
 
         $data = json_encode($attribs);
         $attributes = [

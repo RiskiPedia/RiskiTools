@@ -8,9 +8,9 @@
         "MediaWiki": ">= 1.35.0"
     },
     "ResourceModules": {
-        "ext.RiskUtils": {
+        "ext.riskutils": {
             "scripts": [
-                "extensions/RiskiTools/includes/ext.RiskUtils.js"
+                "extensions/RiskiTools/includes/ext.riskutils.js"
             ]
         },
         "ext.cookie": {
@@ -23,19 +23,19 @@
                 "extensions/RiskiTools/includes/ext.pagestate.js"
             ]
         },
-        "ext.DropDown": {
+        "ext.dropdown": {
             "scripts": [
-                "extensions/RiskiTools/includes/ext.DropDown.js"
+                "extensions/RiskiTools/includes/ext.dropdown.js"
             ]
         },
-        "ext.RiskDisplay": {
+        "ext.riskdisplay": {
             "scripts": [
-                "extensions/RiskiTools/includes/ext.RiskDisplay.js"
+                "extensions/RiskiTools/includes/ext.riskdisplay.js"
             ]
         },
-        "ext.RiskParameter": {
+        "ext.riskparameter": {
             "scripts": [
-                "extensions/RiskiTools/includes/ext.RiskParameter.js"
+                "extensions/RiskiTools/includes/ext.riskparameter.js"
             ]
         }
     },
