@@ -14,5 +14,10 @@ mw.riskutils = mw.riskutils || {};
         return new TextDecoder().decode(bytes);
     }
 
+    utils.isDebugEnabled = function() {
+        const params = new URLSearchParams( window.location.search );
+        return params.get( 'debug' ) === '1';
+    }
+
 }(mw.riskutils));
 

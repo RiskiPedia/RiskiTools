@@ -45,13 +45,16 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
             try {
                 let updatedText = originaltext;
 
-                // Make page state available to Templates (or whatever) by replacing {{pagestate}}
+                // Make page state available to Templates (or whatever) by replacing {pagestate}
                 // with Template-argument-friendly key1=value1|key2=value2|..etc
                 const allPageState = window.RT.pagestate.allPageState();
                 const ps = Object.entries(allPageState)
                         .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
                         .join('|');
                 updatedText = replacePlaceholders(updatedText, { 'pagestate' : ps });
+
+                // These are all the {placeholders} we need before we can display content:
+                const allPlaceholders = matchPlaceholders(updatedText);
 
                 // And replace the individual pagestate {key} with their value:
                 updatedText = replacePlaceholders(updatedText, allPageState);
@@ -71,7 +74,6 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
                     if (wikitext === lastSentWikitext) {
                         return; // Skips to the next element in the .each() loop.
                     }
-                    
 
                     // Get current page context
                     var pageTitle = mw.config.get('wgPageName');
@@ -99,6 +101,8 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
                         e.text('Error: Unable to update risk display');
                         console.error('API request failed:', error);
                     });
+                } else if (mw.riskutils.isDebugEnabled()) {
+                    e.html('<pre>RiskDisplay waiting on:\n'+placeholders.join('\n')+'</pre>');
                 }
             } catch (error) {
                 e.text('');
