@@ -7,7 +7,7 @@
 //
 // Page data will "shadow" persistent cookies.
 //
-const utils = {
+const p = {
     hasPageState: function (name) {
         const riskiData = window.RT.pagedata || {};
         if (name in riskiData) { return true; }
@@ -49,5 +49,5 @@ const utils = {
 };
 
 window.RT = window.RT || {};
-window.RT.pagestate = utils;
+window.RT.pagestate = p;
 window.RT.pagedata = window.RT.pagedata || {};
