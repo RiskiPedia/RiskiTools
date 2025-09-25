@@ -388,6 +388,11 @@ END;
         } else {
             $text = $content;
         }
+
+        $defaultTextHTML = "";
+        if (isset($options['defaulttext'])) {
+            $defaultTextHTML = $parser->recursiveTagParse($options['defaulttext'], $frame);
+        }
         
         $attributes = [
             // Avoid wiki parsing that seems to happen if $text is not
@@ -395,7 +400,7 @@ END;
             'data-originaltexthex' => bin2hex($text),
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateDivOrSpan("div", "RiskDisplay", "", $attributes);
+        $output = self::generateDivOrSpan("div", "RiskDisplay", $defaultTextHTML, $attributes);
 
         return $output;
     }
