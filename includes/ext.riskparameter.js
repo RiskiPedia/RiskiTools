@@ -8,6 +8,9 @@ mw.loader.using(['ext.pagestate'], function () {
     function updateRiskParams() {
         $('.RiskParameter').each(function (index, element) {
             let e = $(element);
+            if (e.data('processed')) {
+                return; // Skip if already processed
+            }
 
             // Split by newlines and filter out empty lines
             var lines = e.text().split('\n').filter(function(line) {
@@ -25,6 +28,7 @@ mw.loader.using(['ext.pagestate'], function () {
                 result[key] = value;
             });
             RT.pagestate.setPageStates(result);
+            e.data('processed', true); // Mark as processed
         });
     }
     updateRiskParams();
