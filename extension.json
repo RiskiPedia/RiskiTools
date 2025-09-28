@@ -37,6 +37,11 @@
             "scripts": [
                 "extensions/RiskiTools/includes/ext.riskparameter.js"
             ]
+        },
+        "ext.riskdatalookup": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.riskdatalookup.js"
+            ]
         }
     },
     "Hooks": {

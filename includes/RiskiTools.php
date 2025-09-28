@@ -15,6 +15,7 @@ class RiskiToolsHooks {
         $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
         $parser->setHook('riskdisplay', [self::class, 'renderRiskDisplay']);
         $parser->setHook('riskparameter', [self::class, 'renderRiskParameter']);
+        $parser->setHook('riskdatalookup', [self::class, 'renderRiskDataLookup']);
         return true;
     }
 
@@ -422,6 +423,57 @@ END;
             'id' => bin2hex(random_bytes(16))
         ];
         $output = self::generateDivOrSpan('span', 'RiskParameter', $content, $attributes, ['hidden' => '']);
+
+        return $output;
+    }
+
+    /**
+     * Renders a <RiskDataLookup>
+     *
+     * @param string $content Inner content of the tag; key=value (one pair per line)
+     * @param array $attribs Tag attributes (unused)
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param PPFrame $frame The preprocessor frame.
+     * @return string Output wikitext.
+     */
+    public static function renderRiskDataLookup($content, array $attribs, Parser $parser, PPFrame $frame) {
+        $parserOutput = $parser->getOutput();
+        $parserOutput->addModules(['ext.riskdatalookup']);
+        $dt2 = RiskData::singleton();
+
+        $options = self::processTagAttributes($attribs);
+        if (!isset($options['table'])) {
+            return self::formatError('riskdatalookup: missing table attribute');
+        }
+        $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText());
+        if ($table === null) {
+            return self::formatError('riskdatalookup: cannot find RiskData table ' . htmlspecialchars($options['table']));
+        }
+        $columns = $dt2->getDatabase()->getColumns($table->getDBkey());
+
+        if (isset($options['row'])) {
+            $row = $options['row'];
+            $whereclause = $columns[0] . "='" . $options['row'] . "'";
+            $data = $dt2->getDatabase()->select($table, $whereclause, false, $pages, __METHOD__);
+            if (count($data) < 1) {
+                return self::formatError("riskdatalookup: can't find row " . $row . " in RiskData table " . $options['table']);
+            }
+            $rowdata = $data[0];
+        } else {
+            $row = intval($options['rowindex'] ?? "0");
+            $data = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
+            if (count($data) < $row+1) {
+                return self::formatError("riskdatalookup: can't find row " . $row . " in RiskData table " . $options['table']);
+            }
+            $rowdata = $data[$row];
+        }
+        unset($rowdata['__pageId']);
+
+        $attributes = [
+            'id' => bin2hex(random_bytes(16)),
+            'data-paramshex' => bin2hex(json_encode($rowdata))
+        ];
+        $output = self::generateDivOrSpan('span', 'RiskDataLookup', $content, $attributes, ['hidden' => '']);
 
         return $output;
     }
