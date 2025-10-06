@@ -25,8 +25,17 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.cookie', 'ext.pagestate'], fun
             RT.pagestate.setPageStates(row); // behave as if the user selected it
         }
 
+        // If the pagestate already has a selection, override defaultValue/Index
+        // and use that previous selection:
+        const selectionkey = Object.keys(data[0])[0];
+        if (RT.pagestate.hasPageState(selectionkey)) {
+            const matchByLabel = menuOptions.find(opt => opt.getLabel() === RT.pagestate.getPageState(selectionkey));
+            if (matchByLabel) {
+                applySelectionByItem(matchByLabel);
+            }
+        }
         // Apply default (index takes precedence if provided and valid)
-        if (typeof defaultIndex === 'number' && menuOptions[defaultIndex]) {
+        else if (typeof defaultIndex === 'number' && menuOptions[defaultIndex]) {
             applySelectionByItem(menuOptions[defaultIndex]);
         } else if (defaultValue) {
             const matchByLabel = menuOptions.find(opt => opt.getLabel() === defaultValue);
@@ -48,7 +57,7 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.cookie', 'ext.pagestate'], fun
         const iconWidth = 20; // Dropdown arrow
         dd.$element.css('width', `${maxWidth + padding + iconWidth}px`);
 
-	// Update cookie when value changes
+	// Update pagestate when value changes
         dd.getMenu().on('select', function (item) {
             const row = JSON.parse(item.getData());
             RT.pagestate.setPageStates(row);
