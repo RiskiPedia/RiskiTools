@@ -132,7 +132,7 @@ class RiskiToolsHooks {
     public static function fullyResolveDT2Title($tableName, $pageTitle) {
         $dt2db = RiskData::singleton()->getDatabase();
 
-        foreach ([$tableName, "$pageTitle:$tableName", "$pageTitle/Data:$tableName"] as $t) {
+        foreach ([$tableName, "$pageTitle$tableName", "$pageTitle:$tableName", "$pageTitle/Data:$tableName"] as $t) {
             $fqTable = RiskDataParser::table2title($t);
             if ($dt2db->getColumns($fqTable->getDBkey())) {
                 return $fqTable;
