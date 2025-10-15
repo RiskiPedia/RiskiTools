@@ -390,9 +390,9 @@ END;
             $text = $content;
         }
 
-        $defaultTextHTML = "";
-        if (isset($options['defaulttext'])) {
-            $defaultTextHTML = $parser->recursiveTagParse($options['defaulttext'], $frame);
+        $placeholderHTML = "";
+        if (isset($options['placeholder'])) {
+            $placeholderHTML = $parser->recursiveTagParse($options['placeholder'], $frame);
         }
         
         $attributes = [
@@ -401,7 +401,7 @@ END;
             'data-originaltexthex' => bin2hex($text),
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateDivOrSpan("div", "RiskDisplay", $defaultTextHTML, $attributes);
+        $output = self::generateDivOrSpan("div", "RiskDisplay", $placeholderHTML, $attributes);
 
         return $output;
     }
