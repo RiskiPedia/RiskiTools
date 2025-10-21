@@ -1,4 +1,4 @@
-mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.cookie', 'ext.pagestate'], function () {
+mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
     'use strict';
 
     function createDropDown(title, data, defaultValue, defaultIndex) {
