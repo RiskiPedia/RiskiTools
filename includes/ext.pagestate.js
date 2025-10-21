@@ -45,7 +45,34 @@ const p = {
     },
     setPageState: function (name, value) {
         this.setPageStates({ [name]: value });
-    }
+    },
+    deletePageStates: function (names) {
+        if (!Array.isArray(names)) {
+            console.error('RT.deletePageStates: Invalid names array:', names);
+            return;
+        }
+
+        const riskiData = window.RT.pagedata || {};
+        let stateChanged = false;
+
+        for (const name of names) {
+            if (typeof name !== 'string' || name.trim() === '') {
+                console.error('RT.deletePageStates: Invalid name:', name);
+                continue;
+            }
+            // Check if the key actually exists before deleting
+            if (name in riskiData) {
+                delete riskiData[name];
+                stateChanged = true; // A key was successfully deleted
+            }
+        }
+        if (stateChanged) {
+            mw.hook('riskiData.changed').fire();
+        }
+    },
+    deletePageState: function (name) {
+        this.deletePageStates([name]);
+    },
 };
 
 window.RT = window.RT || {};
