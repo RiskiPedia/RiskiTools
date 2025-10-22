@@ -19,27 +19,6 @@ mw.riskutils = mw.riskutils || {};
         return params.get( 'debug' ) === '1';
     }
 
-    /**
-     * Tags a jQuery element with the page state keys it manages.
-     * This is used by the MutationObserver to clean up the pagestate when
-     * the element is removed from the DOM.
-     *
-     * @param {jQuery} $el The jQuery element to tag.
-     * @param {string[]} keys An array of page state key names.
-     */
-    utils.setManagedPageKeys = function($el, keys) {
-        if (!$el || typeof $el.data !== 'function') {
-            console.error('riskutils.setManagedPageKeys: Invalid jQuery element provided.');
-            return;
-        }
-        if (!Array.isArray(keys)) {
-            console.error('riskutils.setManagedPageKeys: Keys must be an array.');
-            return;
-        }
-        $el.data('managed-pagestate-keys', keys);
-        $el.attr('data-managed-pagestate-keys', JSON.stringify(keys));
-    }
-
 }(mw.riskutils));
 
 mw.loader.using([], function () {
@@ -61,7 +40,7 @@ mw.loader.using([], function () {
                 // has the 'managed-pagestate-keys' data attribute.
                 const $node = $(node);
                 const $managedElements = $node.find('[data-managed-pagestate-keys]')
-                      .add($node.filter('[data-managed-pagestate-keys]'));
+                    .add($node.filter('[data-managed-pagestate-keys]'));
 
                 // Accumulate all keys into the Set
                 $managedElements.each(function() {

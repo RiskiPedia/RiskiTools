@@ -62,13 +62,6 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
             const row = JSON.parse(item.getData());
             RT.pagestate.setPageStates(row);
 	});
-
-        // Sets a property so if this element gets deleted pagestate gets unset:
-        if (data.length > 0) {
-            const keysToManage = Object.keys(data[0]);
-            mw.riskutils.setManagedPageKeys(dd.$element, keysToManage);
-        }
-
 	return dd;
     }
 

@@ -76,6 +76,19 @@ class RiskiToolsHooks {
     }
 
     /**
+     * Generates the data attribute for managed page state keys.
+     * @param string[] $keys An array of page state key names.
+     * @return array An attribute array [ 'data-managed-pagestate-keys' => '["json", "keys"]' ]
+     */
+    private static function getManagedKeysAttribute(array $keys) {
+        if (empty($keys)) {
+            return [];
+        }
+        // Use array_values to ensure it's always a JSON array [] not an object {}
+        return ['data-managed-pagestate-keys' => json_encode(array_values($keys))];
+    }
+
+    /**
      * Make saved session data available to JavaScript
      */
     public static function onBeforePageDisplay(OutputPage $out, Skin $skin) {
@@ -179,6 +192,8 @@ class RiskiToolsHooks {
             unset($item['__pageId']);
         }
         
+        $managedKeys = array_keys($alldata[0]);
+
         $column_names = array_keys($alldata[0]);
         $label_column = $options['label_column'] ?? $column_names[0];
         
@@ -200,7 +215,10 @@ class RiskiToolsHooks {
         ];
         if (isset($options['default'])) { $attributes['data-default'] = $options['default']; }
         if (isset($options['default-index'])) { $attributes['data-default-index'] = $options['default-index']; }
-        $output = self::generateDivOrSpan('span', 'DropDown', '', $attributes); // , ['hidden' => '']);
+
+        $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
+
+        $output = self::generateDivOrSpan('span', 'DropDown', '', $attributes);
 
         return $output;
     }
@@ -284,9 +302,9 @@ class RiskiToolsHooks {
      */
     public static function onLoadExtensionSchemaUpdates( DatabaseUpdater $updater ) {
         $updater->addExtensionTable( 'riskitools_riskmodel',
-	    		__DIR__ . '/../sql/riskitools_riskmodel.sql', true );
+            __DIR__ . '/../sql/riskitools_riskmodel.sql', true );
 	return true;
-     }
+    }
 
     /**
      * Renders a <RiskModel>
@@ -420,9 +438,21 @@ END;
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.riskparameter']);
 
+        $managedKeys = [];
+        $lines = explode("\n", $content);
+        foreach ($lines as $line) {
+            $pair = array_map('trim', explode('=', $line, 2));
+            if (!empty($pair[0])) {
+                $managedKeys[] = $pair[0];
+            }
+        }
+
         $attributes = [
             'id' => bin2hex(random_bytes(16))
         ];
+
+        $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
+
         $output = self::generateDivOrSpan('span', 'RiskParameter', $content, $attributes, ['hidden' => '']);
 
         return $output;
@@ -470,10 +500,14 @@ END;
         }
         unset($rowdata['__pageId']);
 
+        $managedKeys = array_keys($rowdata);
+
         $attributes = [
             'id' => bin2hex(random_bytes(16)),
             'data-paramshex' => bin2hex(json_encode($rowdata))
         ];
+
+        $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
         $output = self::generateDivOrSpan('span', 'RiskDataLookup', $content, $attributes, ['hidden' => '']);
 
         return $output;
