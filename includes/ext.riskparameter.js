@@ -29,6 +29,10 @@ mw.loader.using(['ext.pagestate'], function () {
             });
             RT.pagestate.setPageStates(result);
             e.data('processed', true); // Mark as processed
+
+            // Sets a property so if this element gets deleted pagestate gets unset:
+            const keysToManage = Object.keys(result);
+            mw.riskutils.setManagedPageKeys(e, keysToManage);
         });
     }
     updateRiskParams();

@@ -74,6 +74,7 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
                     if (wikitext === lastSentWikitext) {
                         return; // Skips to the next element in the .each() loop.
                     }
+                    e.data('lastSentWikitext', wikitext);
 
                     // Get current page context
                     var pageTitle = mw.config.get('wgPageName');
@@ -94,15 +95,19 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
                         const r = data.parse.text;
                         const startIndex = r.indexOf(uniquetext);
                         const endIndex = r.lastIndexOf(uniquetext);
-                        e.html(r.substring(startIndex + uniquetext.length, endIndex));
-                        e.data('lastSentWikitext', wikitext);
-                        mw.hook('riskiUI.changed').fire(); // Trigger any new UI elements
+                        const newhtml = r.substring(startIndex + uniquetext.length, endIndex);
+                        e.html(newhtml);
+                        if (newhtml.trim() !== '') {
+                            mw.hook('riskiUI.changed').fire(); // Trigger any new UI elements
+                        }
                     } ).catch((error) => {
                         e.text('Error: Unable to update risk display');
                         console.error('API request failed:', error);
                     });
                 } else if (mw.riskutils.isDebugEnabled()) {
                     e.html('<pre>RiskDisplay waiting on:\n'+placeholders.join('\n')+'</pre>');
+                } else {
+                    e.html(mw.riskutils.hexToString(e.data('placeholderhtmlhex')));
                 }
             } catch (error) {
                 e.text('');

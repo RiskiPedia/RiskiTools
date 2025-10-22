@@ -399,6 +399,7 @@ END;
             // Avoid wiki parsing that seems to happen if $text is not
             // encoded:
             'data-originaltexthex' => bin2hex($text),
+            'data-placeholderhtmlhex' => bin2hex($placeholderHTML),
             'id' => bin2hex(random_bytes(16))
         ];
         $output = self::generateDivOrSpan("div", "RiskDisplay", $placeholderHTML, $attributes);
