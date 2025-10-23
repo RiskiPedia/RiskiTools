@@ -42,10 +42,10 @@ class ApiRiskParse extends ApiBase {
             // Strip the wrapper HTML and the markers
             $results[$id] = self::stripMarkers( $fullHtml, $uniquetext );
 
-            // If there are any pagestate-changing UI elements, the JavaScript
+            // If there are any RiskiUI elements, the JavaScript
             // code will fire a UIchanged hook so they initialize themselves
             // properly.
-            if (str_contains($fullHtml, "managed-pagestate-keys")) {
+            if (str_contains($fullHtml, "RiskiUI")) {
                 $hasUIelements = 1;
             }
         }

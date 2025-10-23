@@ -81,9 +81,6 @@ class RiskiToolsHooks {
      * @return array An attribute array [ 'data-managed-pagestate-keys' => '["json", "keys"]' ]
      */
     private static function getManagedKeysAttribute(array $keys) {
-        if (empty($keys)) {
-            return [];
-        }
         // Use array_values to ensure it's always a JSON array [] not an object {}
         return ['data-managed-pagestate-keys' => json_encode(array_values($keys))];
     }
@@ -218,7 +215,7 @@ class RiskiToolsHooks {
 
         $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
 
-        $output = self::generateDivOrSpan('span', 'DropDown', '', $attributes);
+        $output = self::generateDivOrSpan('span', 'RiskiUI DropDown', '', $attributes);
 
         return $output;
     }
@@ -420,7 +417,7 @@ END;
             'data-placeholderhtmlhex' => bin2hex($placeholderHTML),
             'id' => bin2hex(random_bytes(16))
         ];
-        $output = self::generateDivOrSpan("div", "RiskDisplay", $placeholderHTML, $attributes);
+        $output = self::generateDivOrSpan("div", "RiskiUI RiskDisplay", $placeholderHTML, $attributes);
 
         return $output;
     }
@@ -453,7 +450,7 @@ END;
 
         $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
 
-        $output = self::generateDivOrSpan('span', 'RiskParameter', $content, $attributes, ['hidden' => '']);
+        $output = self::generateDivOrSpan('span', 'RiskiUI RiskParameter', $content, $attributes, ['hidden' => '']);
 
         return $output;
     }
@@ -508,7 +505,7 @@ END;
         ];
 
         $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
-        $output = self::generateDivOrSpan('span', 'RiskDataLookup', $content, $attributes, ['hidden' => '']);
+        $output = self::generateDivOrSpan('span', 'RiskiUI RiskDataLookup', $content, $attributes, ['hidden' => '']);
 
         return $output;
     }
