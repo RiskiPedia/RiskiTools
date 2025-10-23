@@ -53,10 +53,12 @@
     },
     "AutoloadClasses": {
         "RiskiToolsHooks": "includes/RiskiTools.php",
-        "ApiUpdateRiskiData": "includes/api/ApiUpdateRiskiData.php"
+        "ApiUpdateRiskiData": "includes/api/ApiUpdateRiskiData.php",
+        "ApiRiskParse": "includes/api/ApiRiskParse.php"
     },
     "APIModules": {
-        "updateriskidata": "ApiUpdateRiskiData"
+        "updateriskidata": "ApiUpdateRiskiData",
+        "riskparse": "ApiRiskParse"
     },
     "manifest_version": 2
 }

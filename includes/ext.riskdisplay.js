@@ -1,6 +1,5 @@
-
-mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], function () {
-    // Now OOUI is loaded and we can use it
+mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'], function () {
+    'use strict';
 
     // Make keys/values safe for the Template syntax
     function escapeForTemplate(str) {
@@ -36,74 +35,39 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
     }
 
     function updateRiskDisplays() {
+        const requests = {}; // Batch object for all API requests
+
         // All the class="RiskDisplay" elements on the page...
         $('.RiskDisplay').each(function(index, element) {
-	    let e = $(element);
-	    const originaltext = mw.riskutils.hexToString(e.data('originaltexthex'));
-	    const id = e.attr('id');
+            let e = $(element);
+            const originaltext = mw.riskutils.hexToString(e.data('originaltexthex'));
+            const id = e.attr('id');
 
             try {
                 let updatedText = originaltext;
 
-                // Make page state available to Templates (or whatever) by replacing {pagestate}
-                // with Template-argument-friendly key1=value1|key2=value2|..etc
+                // Make page state available
                 const allPageState = window.RT.pagestate.allPageState();
                 const ps = Object.entries(allPageState)
-                        .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
-                        .join('|');
+                            .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
+                            .join('|');
                 updatedText = replacePlaceholders(updatedText, { 'pagestate' : ps });
-
-                // These are all the {placeholders} we need before we can display content:
-                const allPlaceholders = matchPlaceholders(updatedText);
 
                 // And replace the individual pagestate {key} with their value:
                 updatedText = replacePlaceholders(updatedText, allPageState);
 
                 const placeholders = matchPlaceholders(updatedText);
-                if (placeholders.length == 0) { // No placeholders left:
-                    // Send the text to the server to parse (surrounded by a unique string
-                    // because we want to strip out the extraneous div's and p's the server
-                    // wraps it in)
-                    const uniquetext = 'z3IP5fEV3B9qSE';
-                    const wikitext = uniquetext+updatedText+uniquetext;
 
-                    // Get the previously sent wikitext from the element's data store.
+                if (placeholders.length == 0) { // No placeholders left:
                     const lastSentWikitext = e.data('lastSentWikitext');
 
-                    // If the wikitext hasn't changed, do nothing. This avoids a needless API call/ display refresh.
-                    if (wikitext === lastSentWikitext) {
-                        return; // Skips to the next element in the .each() loop.
+                    if (updatedText === lastSentWikitext) {
+                        return;
                     }
-                    e.data('lastSentWikitext', wikitext);
-
-                    // Get current page context
-                    var pageTitle = mw.config.get('wgPageName');
-                    var namespace = mw.config.get('wgCanonicalNamespace');
-                    var fullTitle = namespace ? (namespace + ':' + pageTitle) : pageTitle;
-
-                    var api = new mw.Api();
+                    requests[id] = updatedText;
+                    e.data('lastSentWikitext', updatedText);
                     e.html("<i>Calculating...</i>");
-                    api.get( {
-                        action: 'parse',
-                        format: 'json',
-                        formatversion: 2,
-                        title: fullTitle,
-                        pst: true,
-                        text: wikitext,
-                        prop: 'text'
-                    } ).then( ( data ) => {
-                        const r = data.parse.text;
-                        const startIndex = r.indexOf(uniquetext);
-                        const endIndex = r.lastIndexOf(uniquetext);
-                        const newhtml = r.substring(startIndex + uniquetext.length, endIndex);
-                        e.html(newhtml);
-                        if (newhtml.trim() !== '') {
-                            mw.hook('riskiUI.changed').fire(); // Trigger any new UI elements
-                        }
-                    } ).catch((error) => {
-                        e.text('Error: Unable to update risk display');
-                        console.error('API request failed:', error);
-                    });
+
                 } else if (mw.riskutils.isDebugEnabled()) {
                     e.html('<pre>RiskDisplay waiting on:\n'+placeholders.join('\n')+'</pre>');
                 } else {
@@ -113,6 +77,38 @@ mw.loader.using(['ext.riskutils','ext.dropdown','ext.riskparameter','oojs-ui'], 
                 e.text('');
             }
         });
+
+        // --- After the loop, process the batch ---
+        if (Object.keys(requests).length > 0) {
+            var pageTitle = mw.config.get('wgPageName');
+            var namespace = mw.config.get('wgCanonicalNamespace');
+            var fullTitle = namespace ? (namespace + ':' + pageTitle) : pageTitle;
+
+            var api = new mw.Api();
+            api.postWithToken('csrf', {
+                action: 'riskparse',
+                format: 'json',
+                title: fullTitle,
+                requests: JSON.stringify(requests) // Send the entire batch
+            }).then( ( data ) => {
+                if (data.riskparse && data.riskparse.results) {
+                    for (const [id, html] of Object.entries(data.riskparse.results)) {
+                        const e = $('#' + id);
+                        if (e.length) {
+                            e.html(html ?? '');
+                        }
+                    }
+                }
+                if (data.riskparse && data.riskparse.hasUIelements) {
+                    mw.hook('riskiUI.changed').fire();
+                }
+            }).catch((error) => {
+                console.error('API batch request failed:', error);
+                for (const id of Object.keys(requests)) {
+                    $('#' + id).text('Error: Unable to update risk display');
+                }
+            });
+        }
     }
 
     // Initial update
