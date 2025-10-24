@@ -68,10 +68,13 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
                     e.data('lastSentWikitext', updatedText);
                     e.html("<i>Calculating...</i>");
 
-                } else if (mw.riskutils.isDebugEnabled()) {
-                    e.html('<pre>RiskDisplay waiting on:\n'+placeholders.join('\n')+'</pre>');
                 } else {
-                    e.html(mw.riskutils.hexToString(e.data('placeholderhtmlhex')));
+                    e.data('lastSentWikitext', '');
+                    if (mw.riskutils.isDebugEnabled()) {
+                        e.html('<pre>RiskDisplay waiting on:\n'+placeholders.join('\n')+'</pre>');
+                    } else {
+                        e.html(mw.riskutils.hexToString(e.data('placeholderhtmlhex')));
+                    }
                 }
             } catch (error) {
                 e.text('');
