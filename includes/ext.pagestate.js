@@ -40,7 +40,7 @@ const p = {
             }
         }
         if (stateChanged) {
-            mw.hook('riskiData.changed').fire();
+            mw.hook('riskiData.changed').fire(nameValuePairs);
         }
     },
     setPageState: function (name, value) {
@@ -67,7 +67,7 @@ const p = {
             }
         }
         if (stateChanged) {
-            mw.hook('riskiData.changed').fire();
+            mw.hook('riskiData.changed').fire(names);
         }
     },
     deletePageState: function (name) {
