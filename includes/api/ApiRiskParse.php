@@ -29,7 +29,6 @@ class ApiRiskParse extends ApiBase {
         $options = ParserOptions::newFromContext( $this->getContext() );
 
         $results = []; // This will hold our { id: html } results
-        $hasUIelements = 0;
 
         foreach ( $requests as $id => $wikitext ) {
             // Wrap the text in markers, just like the 'parse' action does
@@ -41,19 +40,11 @@ class ApiRiskParse extends ApiBase {
 
             // Strip the wrapper HTML and the markers
             $results[$id] = self::stripMarkers( $fullHtml, $uniquetext );
-
-            // If there are any RiskiUI elements, the JavaScript
-            // code will fire a UIchanged hook so they initialize themselves
-            // properly.
-            if (str_contains($fullHtml, "RiskiUI")) {
-                $hasUIelements = 1;
-            }
         }
 
         // Add the results to the API output
         $this->getResult()->addValue( null, $this->getModuleName(), [
                                           'results' => $results,
-                                          'hasUIelements' => $hasUIelements,
         ] );
 
         return true;
