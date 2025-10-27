@@ -6,6 +6,7 @@
 // 
 mw.loader.using(['ext.pagestate'], function () {
     function createRiskParams(el) {
+        const allInitialStateChanges = {}; // Accumulator for all states
         el.find('.RiskParameter').each(function (index, element) {
             let e = $(element);
             if (e.data('processed')) {
@@ -27,9 +28,11 @@ mw.loader.using(['ext.pagestate'], function () {
                 var value = parts[1];
                 result[key] = value;
             });
-            RT.pagestate.setPageStates(result);
+            // Object.assign merges the new state into our accumulator
+            Object.assign(allInitialStateChanges, result);
             e.data('processed', true); // Mark as processed
         });
+        RT.pagestate.setPageStates(allInitialStateChanges);
     }
     mw.hook('wikipage.content').add(createRiskParams);
 });
