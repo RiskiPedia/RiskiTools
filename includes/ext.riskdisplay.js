@@ -34,11 +34,15 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
         return validMatches.map(m => m.slice(1, -1));
     }
 
-    function updateRiskDisplays() {
+    function updateRiskDisplays(changes) {
+        createRiskDisplays($('body')); // TODO: should be The most appropriate element containing the content, such as #mw-content-text (regular content root) or #wikiPreview (live preview root
+    }
+
+    function createRiskDisplays(el) {
         const requests = {}; // Batch object for all API requests
 
-        // All the class="RiskDisplay" elements on the page...
-        $('.RiskDisplay').each(function(index, element) {
+        // All the class="RiskDisplay" elements under el:
+        el.find('.RiskDisplay').each(function(index, element) {
             let e = $(element);
             const originaltext = mw.riskutils.hexToString(e.data('originaltexthex'));
             const id = e.attr('id');
@@ -99,11 +103,9 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
                         const e = $('#' + id);
                         if (e.length) {
                             e.html(html ?? '');
+                            mw.hook('wikipage.content').fire(e);
                         }
                     }
-                }
-                if (data.riskparse && data.riskparse.hasUIelements) {
-                    mw.hook('riskiUI.changed').fire();
                 }
             }).catch((error) => {
                 console.error('API batch request failed:', error);
@@ -114,10 +116,6 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
         }
     }
 
-    // Initial update
-    updateRiskDisplays();
-
-    // Listen for UI data changes via custom hook
     mw.hook('riskiData.changed').add(updateRiskDisplays);
-    mw.hook('riskiUI.changed').add(updateRiskDisplays);
+    mw.hook('wikipage.content').add(createRiskDisplays);
 });

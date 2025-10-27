@@ -88,11 +88,11 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
      * Finds all .DropDown elements and replaces them with widgets.
      * Accumulates all initial page state changes and sets them once.
      */
-    function createDropDowns() {
+    function createDropDowns(el) {
         const allInitialStateChanges = {}; // Accumulator for all states
 
-        // All the class="DropDown" elements on the page...
-        $('.DropDown').each(function(_i, el) {
+        // All the class="DropDown" elements under el...
+        el.find('.DropDown').each(function(_i, el) {
             const $el = $(el);
             const data = JSON.parse(mw.riskutils.hexToString($el.data('choiceshex')));
             const title = $el.data('title');
@@ -184,12 +184,9 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
         });
     }
 
-    // Initial creation of dropdowns
-    createDropDowns();
-
     // Listen for pagestate changes, update selection if changed:
     mw.hook('riskiData.changed').add(maybeUpdateSelection);
 
     // Listen for new DropDowns dynamically created (e.g., by RiskDisplay)
-    mw.hook('riskiUI.changed').add(createDropDowns);
+    mw.hook('wikipage.content').add(createDropDowns);
 });

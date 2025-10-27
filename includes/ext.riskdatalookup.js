@@ -4,8 +4,8 @@
 // On load we just need to put the key/value pairs into the page state:
 // 
 mw.loader.using(['ext.riskutils','ext.pagestate'], function () {
-    function updateRiskDataLookup() {
-        $('.RiskDataLookup').each(function (index, element) {
+    function updateRiskDataLookup(el) {
+        el.find('.RiskDataLookup').each(function (index, element) {
             let e = $(element);
             if (e.data('processed')) {
                 return; // Skip if already processed
@@ -15,6 +15,5 @@ mw.loader.using(['ext.riskutils','ext.pagestate'], function () {
             e.data('processed', true); // Mark as processed
         });
     }
-    updateRiskDataLookup();
-    mw.hook('riskiUI.changed').add(updateRiskDataLookup);
+    mw.hook('wikipage.content').add(updateRiskDataLookup);
 });
