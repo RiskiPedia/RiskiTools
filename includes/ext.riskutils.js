@@ -19,4 +19,20 @@ mw.riskutils = mw.riskutils || {};
         return params.get( 'debug' ) === '1';
     }
 
+    utils.debugPrint = function(s) {
+        if (utils.isDebugEnabled()) {
+            console.log(s);
+        }
+    }
+
+    utils.parentFrame = function() {
+        const e = new Error();
+        // The stack is a string, split by newlines
+        const lines = e.stack.split('\n');
+        // line 0: "Error"
+        // line 1: debugPrintCaller() (this function)
+        // line 2: calling function
+        // line 3: parent of calling function (the one we want to print)
+        return lines[3].trim();
+    }
 }(mw.riskutils));

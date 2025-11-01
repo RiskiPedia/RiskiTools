@@ -25,6 +25,12 @@ const p = {
             console.error('RT.setPageStates: Invalid nameValuePairs:', nameValuePairs);
             return;
         }
+        if (Object.keys(nameValuePairs).length === 0) {
+            return;
+        }
+
+        mw.riskutils.debugPrint("setPageStates " + JSON.stringify(nameValuePairs));
+        mw.riskutils.debugPrint(mw.riskutils.parentFrame());
 
         const riskiData = window.RT.pagedata || {};
         let stateChanged = false; // Flag to track if any value actually changed
@@ -51,6 +57,12 @@ const p = {
             console.error('RT.deletePageStates: Invalid names array:', names);
             return;
         }
+        if (names.length === 0) {
+            return;
+        }
+
+        mw.riskutils.debugPrint("deletePageStates " + JSON.stringify(names));
+        mw.riskutils.debugPrint(mw.riskutils.parentFrame());
 
         const riskiData = window.RT.pagedata || {};
         let stateChanged = false;
