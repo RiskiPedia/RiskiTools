@@ -35,7 +35,7 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
     }
 
     function updateRiskDisplays(changes) {
-        createRiskDisplays($('body')); // TODO: should be The most appropriate element containing the content, such as #mw-content-text (regular content root) or #wikiPreview (live preview root
+        createRiskDisplays($('body')); // TODO: should be The most appropriate element containing the content, such as #mw-content-text (regular content root) or #wikiPreview (live preview root)
     }
 
     function createRiskDisplays(el) {
@@ -103,9 +103,10 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
                         const e = $('#' + id);
                         if (e.length) {
                             e.html(html ?? '');
-                            mw.hook('wikipage.content').fire(e);
                         }
                     }
+                    mw.hook('wikipage.content').fire($('#mw-content-text'));
+
                 }
             }).catch((error) => {
                 console.error('API batch request failed:', error);
