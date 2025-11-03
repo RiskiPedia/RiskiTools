@@ -29,7 +29,7 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
             const isDoubleOpen = before.endsWith('{');
             const isDoubleClose = after.startsWith('}');
 
-            return !isDoubleOpen && !isDoubleClose;
+            return !(isDoubleOpen && isDoubleClose);
         });
         return validMatches.map(m => m.slice(1, -1));
     }
