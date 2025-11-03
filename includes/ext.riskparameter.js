@@ -9,9 +9,7 @@ mw.loader.using(['ext.pagestate'], function () {
         const allInitialStateChanges = {}; // Accumulator for all states
         el.find('.RiskParameter').each(function (index, element) {
             let e = $(element);
-            if (e.data('processed')) {
-                return; // Skip if already processed
-            }
+            e.removeClass('RiskParameter'); // So we don't process this element again
 
             // Split by newlines and filter out empty lines
             var lines = e.text().split('\n').filter(function(line) {
@@ -30,7 +28,6 @@ mw.loader.using(['ext.pagestate'], function () {
             });
             // Object.assign merges the new state into our accumulator
             Object.assign(allInitialStateChanges, result);
-            e.data('processed', true); // Mark as processed
         });
         RT.pagestate.setPageStates(allInitialStateChanges);
     }

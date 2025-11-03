@@ -8,13 +8,10 @@ mw.loader.using(['ext.riskutils','ext.pagestate'], function () {
         const allInitialStateChanges = {}; // Accumulator for all states
         el.find('.RiskDataLookup').each(function (index, element) {
             let e = $(element);
-            if (e.data('processed')) {
-                return; // Skip if already processed
-            }
+            e.removeClass('RiskDataLookup'); // So we don't process this element again
 	    const kvpairs = JSON.parse(mw.riskutils.hexToString(e.data('paramshex')));
             // Object.assign merges the new state into our accumulator
             Object.assign(allInitialStateChanges, kvpairs);
-            e.data('processed', true); // Mark as processed
         });
         RT.pagestate.setPageStates(allInitialStateChanges);
     }
