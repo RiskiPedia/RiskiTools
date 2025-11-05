@@ -321,7 +321,8 @@ class RiskiToolsHooks {
 
         /* Grab all the <riskmodel> tags on the page */
         Parser::extractTagsAndParams( [ 'riskmodel' ], $content, $riskmodels );
-        /* Delete old data */
+
+        /* Delete old data (_riskmodel_params are deleted by ON DELETE CASCADE sql constraint). */
         $db->delete( 'riskitools_riskmodel', [ 'rm_page_id' => $pageId ], __METHOD__ );
 
         /* RiskModel names have to be unique on a page */
@@ -337,11 +338,49 @@ class RiskiToolsHooks {
             if (isset($seenNames[$name])) { continue; }
             $seenNames[$name] = true;
 
+            // 1. Extract all data- attributes into a parameters array
+            $parameters = [];
+            foreach ($options as $key => $value) {
+                if (strpos($key, 'data-') === 0) {
+                    $paramName = substr($key, 5); // Get 'foo' from 'data-foo'
+                    $parameters[$paramName] = $value;
+                }
+            }
+
+            // 2. Topologically sort the parameters
+            $sortResult = self::topologicalSortParameters($parameters);
+
+            // 3. Insert the main riskmodel row
             $db->insert( 'riskitools_riskmodel',
                 [ 'rm_page_id' => $pageId,
                   'rm_text' => $content ?? '',
                   'rm_name' => $name
-                ]);
+                ],
+                __METHOD__
+            );
+
+            // 4. Get the ID of the row we just inserted
+            $modelId = $db->insertId();
+
+            // 5. If sorting was successful and we have a valid ID, insert the parameters
+            if ($modelId && $sortResult['error'] === null) {
+                $sortedNames = $sortResult['sorted'];
+                $order = 0;
+                $rows = [];
+                foreach ($sortedNames as $paramName) {
+                    $rows[] = [
+                        'rmp_model_id' => $modelId,
+                        'rmp_name' => $paramName,
+                        'rmp_expression' => $parameters[$paramName],
+                        'rmp_order' => $order
+                    ];
+                    $order++;
+                }
+
+                if (!empty($rows)) {
+                    $db->insert( 'riskitools_riskmodel_params', $rows, __METHOD__ );
+                }
+            }
         }
 
         // Get the title of the edited page
@@ -383,6 +422,9 @@ class RiskiToolsHooks {
     public static function onLoadExtensionSchemaUpdates( DatabaseUpdater $updater ) {
         $updater->addExtensionTable( 'riskitools_riskmodel',
             __DIR__ . '/../sql/riskitools_riskmodel.sql', true );
+        $updater->addExtensionTable( 'riskitools_riskmodel_params',
+            __DIR__ . '/../sql/riskitools_riskmodel_params.sql', true );
+
 	return true;
     }
 
