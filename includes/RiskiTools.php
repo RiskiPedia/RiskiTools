@@ -151,15 +151,22 @@ class RiskiToolsHooks {
         return null;
     }
 
-    /**
-     * Finds all {placeholder} variables in a string.
+   /**
+     * Finds all {placeholder} variables in a string, restricted to letters,
+     * numbers, and underscores.
+     * Avoids matching MediaWiki templates like {{foo}} or {{{foo}}}.
+     *
      * @param string $text The text to search.
      * @return array A list of unique placeholder names (without braces).
      */
     private static function findPlaceholders($text) {
-        // Regex to match { followed by letters, numbers, underscore, or marks, then }
-        // \p{L} = letters, \p{N} = numbers, \p{M} = marks
-        preg_match_all('/\{([\p{L}\p{N}_\p{M}]+)\}/u', $text, $matches);
+        // Regex:
+        // (?<!\{)  - Negative lookbehind: not preceded by {
+        // \{         - Literal {
+        // ([a-zA-Z0-9_]+) - Capture group 1: letters, numbers, underscore
+        // \}         - Literal }
+        // (?!\})    - Negative lookahead: not followed by }
+        preg_match_all('/(?<!\{)\{([a-zA-Z0-9_]+)\}(?!\})/', $text, $matches);
 
         // Return only the unique captured names (index 1)
         return array_unique($matches[1]);
@@ -516,7 +523,7 @@ class RiskiToolsHooks {
 
             $result = $db->select(
                 'riskitools_riskmodel',
-                ['rm_text'],
+                ['rm_id', 'rm_text'],
                 ['rm_page_id' => $pageId, 'rm_name' => $mn],
                 __METHOD__
                 );
@@ -524,6 +531,27 @@ class RiskiToolsHooks {
             return $result->fetchRow();
         }
         return null;
+    }
+
+    /**
+     * Fetches all parameters for a given risk model, in their pre-sorted order.
+     * @param int $modelId The rm_id of the model.
+     * @return array Associative array of [param_name => expression]
+     */
+    private static function fetchRiskModelParams($modelId) {
+        $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
+        $res = $db->select(
+            'riskitools_riskmodel_params',
+            ['rmp_name', 'rmp_expression'],
+            ['rmp_model_id' => $modelId],
+            __METHOD__,
+            ['ORDER BY' => 'rmp_order ASC']
+        );
+        $params = [];
+        foreach ($res as $row) {
+            $params[$row->rmp_name] = $row->rmp_expression;
+        }
+        return $params;
     }
 
     /**
@@ -540,30 +568,62 @@ class RiskiToolsHooks {
         $parserOutput->addModules(['ext.riskdisplay']);
 
         $options = self::processTagAttributes($attribs);
-        
-        if (isset($options['model'])) {
-            $row = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
-            if ($row === null) {
-                return self::formatError("riskdisplay: can't find riskmodel named ".$options['model']);
+
+        $modelContent = $content; // Default to tag content
+        $dbParams = [];
+
+        // 1. Extract local data- attributes from the <riskdisplay> tag
+        $localParams = [];
+        foreach ($options as $key => $value) {
+            if (strpos($key, 'data-') === 0) {
+                $localParams[substr($key, 5)] = $value;
             }
-            if (!$content || trim($content) == "") {
-                $text = $row['rm_text'];
-            } else {
-                $text = $content;
-            }
-        } else {
-            $text = $content;
         }
 
+        // 2. If a model= attribute is specified, fetch its data
+        if (isset($options['model'])) {
+            $modelRow = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
+            if ($modelRow === null) {
+                return self::formatError("riskdisplay: can't find riskmodel named " . htmlspecialchars($options['model']));
+            }
+
+            // Fetch the model's pre-sorted parameters
+            $dbParams = self::fetchRiskModelParams($modelRow['rm_id']);
+
+            // Use model's content *only if* tag content is empty
+            if (empty(trim($content))) {
+                $modelContent = $modelRow['rm_text'];
+            }
+            // else: $modelContent remains the tag's inner content
+        }
+
+        // 3. Merge parameters: local <riskdisplay> data- attributes override the model's
+        $mergedParams = array_merge($dbParams, $localParams);
+
+        // 4. Re-sort the merged parameters to ensure correct dependency order
+        $sortResult = self::topologicalSortParameters($mergedParams);
+
+        if ($sortResult['error']) {
+            $modelName = $options['model'] ?? '[inline model]';
+            return self::formatError('riskdisplay (' . htmlspecialchars($modelName) . '): ' . $sortResult['error']);
+        }
+
+        // 5. Build the final, sorted parameter list to send to the client
+        $sortedParams = [];
+        foreach ($sortResult['sorted'] as $name) {
+            $sortedParams[$name] = $mergedParams[$name];
+        }
+
+        // 6. Handle the placeholder attribute
         $placeholderHTML = "";
         if (isset($options['placeholder'])) {
             $placeholderHTML = $parser->recursiveTagParse($options['placeholder'], $frame);
         }
-        
+
+        // 7. Generate output tag with all data for the JavaScript
         $attributes = [
-            // Avoid wiki parsing that seems to happen if $text is not
-            // encoded:
-            'data-originaltexthex' => bin2hex($text),
+            'data-originaltexthex' => bin2hex($modelContent),
+            'data-paramshex' => bin2hex(json_encode($sortedParams)),
             'data-placeholderhtmlhex' => bin2hex($placeholderHTML),
             'id' => bin2hex(random_bytes(16))
         ];

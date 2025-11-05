@@ -1,37 +1,23 @@
 mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'], function () {
     'use strict';
 
-    // Make keys/values safe for the Template syntax
-    function escapeForTemplate(str) {
-        return String(str).replace(/[^a-zA-Z0-9_+,.!@#$%^*:;\- ]/g, ch => `&#${ch.charCodeAt(0)};`);
-    }
-
-    function replacePlaceholders(text, data) {
-        let result = text;
-        for (const [key, value] of Object.entries(data)) {
-            // Replace all occurrences of {key} with the value
-            result = result.replaceAll(`{${key}}`, value);
-        }
-        return result;
-    }
-
     function matchPlaceholders(input) {
-        // Match { followed by allowed chars (letters, numbers, underscores, marks) then }
-        const potentialMatches = input.match(/\{[\p{L}\p{N}_\p{M}]+\}/gu) || [];
+        // Regex:
+        // (?<!\{)  - Negative lookbehind: not preceded by {
+        // \{         - Literal {
+        // ([a-zA-Z0-9_]+) - Capture group 1: letters, numbers, underscore
+        // \}         - Literal }
+        // (?!\})    - Negative lookahead: not followed by }
+        const regex = /(?<!\{)\{([a-zA-Z0-9_]+)\}(?!\})/g;
 
-        // Filter out double braces {{...}} and {...}}
-        // because those are template calls.
-        const validMatches = potentialMatches.filter(match => {
-            const startIndex = input.indexOf(match);
-            const before = input.slice(0, startIndex);
-            const after = input.slice(startIndex + match.length);
+        // Use matchAll to get an iterator of all matches
+        const matches = input.matchAll(regex);
 
-            const isDoubleOpen = before.endsWith('{');
-            const isDoubleClose = after.startsWith('}');
-
-            return !(isDoubleOpen && isDoubleClose);
-        });
-        return validMatches.map(m => m.slice(1, -1));
+        const placeholders = new Set();
+        for (const match of matches) {
+            placeholders.add(match[1]); // Add the captured group (the name)
+        }
+        return placeholders;
     }
 
     function updateRiskDisplays(changes) {
@@ -40,48 +26,64 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
 
     function createRiskDisplays(el) {
         const requests = {}; // Batch object for all API requests
+        const allPageState = window.RT.pagestate.allPageState();
+        const externalParams = new Set(Object.keys(allPageState));
 
         // All the class="RiskDisplay" elements under el:
         el.find('.RiskDisplay').each(function(index, element) {
             let e = $(element);
-            const originaltext = mw.riskutils.hexToString(e.data('originaltexthex'));
             const id = e.attr('id');
 
             try {
-                let updatedText = originaltext;
+                const originaltext = mw.riskutils.hexToString(e.data('originaltexthex'));
+                const paramMap = JSON.parse(mw.riskutils.hexToString(e.data('paramshex') || '6865783a7b7d')); // hex for "{}"
+                const definedParams = new Set(Object.keys(paramMap));
 
-                // Make page state available
-                const allPageState = window.RT.pagestate.allPageState();
-                const ps = Object.entries(allPageState)
-                            .map(([k, v]) => `${escapeForTemplate(k)}=${escapeForTemplate(v)}`)
-                            .join('|');
-                updatedText = replacePlaceholders(updatedText, { 'pagestate' : ps });
+                // 1. Find ALL placeholders, from the main text AND from all parameter expressions
+                const allPlaceholders = new Set(matchPlaceholders(originaltext));
+                Object.values(paramMap).forEach(expression => {
+                    matchPlaceholders(expression).forEach(p => allPlaceholders.add(p));
+                });
 
-                // And replace the individual pagestate {key} with their value:
-                updatedText = replacePlaceholders(updatedText, allPageState);
+                // 2. Determine which placeholders are "unresolved"
+                // An unresolved placeholder is one that is NOT defined by the model
+                // AND NOT provided by the external page state.
+                const unresolved = [...allPlaceholders].filter(p =>
+                    !definedParams.has(p) && !externalParams.has(p)
+                );
 
-                const placeholders = matchPlaceholders(updatedText);
+                if (unresolved.length === 0) {
+                    // 3. We have all data needed. Send to server for processing.
+                    const requestData = {
+                        text: originaltext,
+                        params: paramMap,
+                        pagestate: allPageState
+                    };
 
-                if (placeholders.length == 0) { // No placeholders left:
-                    const lastSentWikitext = e.data('lastSentWikitext');
+                    // 4. Check if data has changed since last send to avoid redundant API calls
+                    const requestDataStr = JSON.stringify(requestData);
+                    const lastSentData = e.data('lastSentData');
 
-                    if (updatedText === lastSentWikitext) {
-                        return;
+                    if (requestDataStr === lastSentData) {
+                        return; // Nothing to do
                     }
-                    requests[id] = updatedText;
-                    e.data('lastSentWikitext', updatedText);
+
+                    requests[id] = requestData;
+                    e.data('lastSentData', requestDataStr);
                     e.html("<i>Calculating...</i>");
 
                 } else {
-                    e.data('lastSentWikitext', '');
+                    // 5. We are waiting on unresolved placeholders.
+                    e.data('lastSentData', ''); // Clear last sent data
                     if (mw.riskutils.isDebugEnabled()) {
-                        e.html('<pre>RiskDisplay waiting on:\n'+placeholders.join('\n')+'</pre>');
+                        e.html('<pre>RiskDisplay waiting on:\n' + unresolved.join('\n') + '</pre>');
                     } else {
                         e.html(mw.riskutils.hexToString(e.data('placeholderhtmlhex')));
                     }
                 }
             } catch (error) {
-                e.text('');
+                console.error("Error processing RiskDisplay (id: " + id + "):", error);
+                e.html('<span class="error">Error: Could not render RiskDisplay.</span>');
             }
         });
 
@@ -111,7 +113,7 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
             }).catch((error) => {
                 console.error('API batch request failed:', error);
                 for (const id of Object.keys(requests)) {
-                    $('#' + id).text('Error: Unable to update risk display');
+                    $('#' + id).html('<span class="error">Error: Unable to update risk display.</span>');
                 }
             });
         }
