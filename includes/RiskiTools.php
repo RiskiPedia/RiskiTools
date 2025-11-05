@@ -485,6 +485,18 @@ class RiskiToolsHooks {
         return $output;
     }
 
+    public static function splitAtLastColon($string) {
+        $lastColonPos = strrpos($string, ':');
+        if ($lastColonPos === false) {
+            // No colon found, return the whole string as the first part, empty second part
+            return [$string, ''];
+         }
+        $before = substr($string, 0, $lastColonPos);
+        $after = substr($string, $lastColonPos + 1);
+        return [$before, $after];
+     }
+
+
     /**
      * Make referring to a RiskModel by name convenient:
      * If a fully-qualified name is not given, automatically look
