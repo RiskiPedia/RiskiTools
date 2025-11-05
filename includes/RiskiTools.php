@@ -152,6 +152,89 @@ class RiskiToolsHooks {
     }
 
     /**
+     * Finds all {placeholder} variables in a string.
+     * @param string $text The text to search.
+     * @return array A list of unique placeholder names (without braces).
+     */
+    private static function findPlaceholders($text) {
+        // Regex to match { followed by letters, numbers, underscore, or marks, then }
+        // \p{L} = letters, \p{N} = numbers, \p{M} = marks
+        preg_match_all('/\{([\p{L}\p{N}_\p{M}]+)\}/u', $text, $matches);
+
+        // Return only the unique captured names (index 1)
+        return array_unique($matches[1]);
+    }
+
+    /**
+     * Sorts parameters based on their {placeholder} dependencies.
+     * @param array $parameters An associative array of ['name' => 'expression'].
+     * @return array An array with ['sorted' => [...], 'error' => null] on success,
+     * or ['sorted' => null, 'error' => '...'] on failure.
+     */
+    private static function topologicalSortParameters(array $parameters) {
+        $adjList = [];    // $adjList[$node] = [list of nodes that depend on $node]
+        $inDegree = [];   // $inDegree[$node] = count of dependencies for $node
+        $paramNames = array_keys($parameters);
+
+        // 1. Initialize graph and in-degree for all parameters
+        foreach ($paramNames as $name) {
+            $adjList[$name] = [];
+            $inDegree[$name] = 0;
+        }
+
+        // 2. Build the graph and in-degree map
+        foreach ($parameters as $name => $expression) {
+            $dependencies = self::findPlaceholders($expression);
+            foreach ($dependencies as $dep) {
+                // Only consider dependencies on other parameters in this set
+                if (in_array($dep, $paramNames)) {
+                    // $dep is a dependency for $name
+                    // Add an edge from $dep -> $name
+                    $adjList[$dep][] = $name;
+                    $inDegree[$name]++;
+                }
+            }
+        }
+
+        // 3. Initialize the queue with all nodes having an in-degree of 0
+        $queue = new \SplQueue();
+        foreach ($inDegree as $name => $degree) {
+            if ($degree === 0) {
+                $queue->enqueue($name);
+            }
+        }
+
+        // 4. Process the graph
+        $sortedList = [];
+        while (!$queue->isEmpty()) {
+            $node = $queue->dequeue();
+            $sortedList[] = $node;
+
+            foreach ($adjList[$node] as $neighbor) {
+                // "Remove" the edge from $node to $neighbor
+                $inDegree[$neighbor]--;
+                if ($inDegree[$neighbor] === 0) {
+                    $queue->enqueue($neighbor);
+                }
+            }
+        }
+
+        // 5. Check for cycles
+        if (count($sortedList) !== count($paramNames)) {
+            // A cycle was detected. Find the nodes involved.
+            $problemNodes = array_keys(array_filter(
+                $inDegree,
+                fn($degree) => $degree > 0
+            ));
+            $errorMsg = 'Circular reference detected in riskmodel parameters. ' .
+                        'Problem parameters: ' . implode(', ', $problemNodes);
+            return ['sorted' => null, 'error' => $errorMsg];
+        }
+
+        return ['sorted' => $sortedList, 'error' => null];
+    }
+
+    /**
      * Renders a dropdown from a RiskData table using a <dropdown> tag.
      * @param string $content Inner content of the tag (unused).
      * @param array $attribs Tag attributes (e.g., ['table' => '...', 'title' => '...']).
@@ -303,7 +386,7 @@ class RiskiToolsHooks {
 	return true;
     }
 
-    /**
+/**
      * Renders a <RiskModel>
      *
      * @param string $content Inner content of the tag (unused).
@@ -323,28 +406,41 @@ class RiskiToolsHooks {
         $pageTitle = $parser->getTitle()->getFullText();
         $fullRiskModelTitle = $pageTitle . ':' . $options['name'];
 
-        // TODO:
-        // Output GUI widgets that let risk model creators
-        // tweak inputs and observe the calculation output
-        $content = htmlspecialchars($content);
-        $output = <<<END
-<pre>
-  RiskModel: $fullRiskModelTitle
-    Content: $content
-</pre> 
-END;
-        return $output;
-    }
-
-    public static function splitAtLastColon($string) {
-        $lastColonPos = strrpos($string, ':');
-        if ($lastColonPos === false) {
-            // No colon found, return the whole string as the first part, empty second part
-            return [$string, ''];
+        // 1. Extract all data- attributes into a parameters array
+        $parameters = [];
+        foreach ($options as $key => $value) {
+            if (strpos($key, 'data-') === 0) {
+                $paramName = substr($key, 5); // Get 'foo' from 'data-foo'
+                $parameters[$paramName] = $value;
+            }
         }
-        $before = substr($string, 0, $lastColonPos);
-        $after = substr($string, $lastColonPos + 1);
-        return [$before, $after];
+
+        // 2. Topologically sort the parameters
+        $sortResult = self::topologicalSortParameters($parameters);
+
+        // 3. Handle circular reference errors
+        if ($sortResult['error']) {
+            return self::formatError('riskmodel ' . $options['name'] . ': ' . $sortResult['error']);
+        }
+
+        $sortedNames = $sortResult['sorted'];
+
+        // 4. Display the sorted parameters for testing
+        $output = "<pre>\n";
+        $output .= "RiskModel: " . htmlspecialchars($fullRiskModelTitle) . "\n";
+
+        if (!empty($sortedNames)) {
+            $output .= "Sorted Parameters:\n";
+            foreach ($sortedNames as $name) {
+                $expression = htmlspecialchars($parameters[$name]);
+                $output .= "  " . htmlspecialchars($name) . " = " . $expression . "\n";
+            }
+        }
+
+        $output .= "Content: " . htmlspecialchars($content) . "\n";
+        $output .= "</pre>\n";
+
+        return $output;
     }
 
     /**
