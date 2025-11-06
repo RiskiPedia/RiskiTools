@@ -3,19 +3,22 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
 
     function matchPlaceholders(input) {
         // Regex:
-        // (?<!\{)  - Negative lookbehind: not preceded by {
         // \{         - Literal {
         // ([a-zA-Z0-9_]+) - Capture group 1: letters, numbers, underscore
         // \}         - Literal }
-        // (?!\})    - Negative lookahead: not followed by }
-        const regex = /(?<!\{)\{([a-zA-Z0-9_]+)\}(?!\})/g;
+        const regex = /\{([a-zA-Z0-9_]+)\}/g;
 
         // Use matchAll to get an iterator of all matches
         const matches = input.matchAll(regex);
 
         const placeholders = new Set();
         for (const match of matches) {
-            placeholders.add(match[1]); // Add the captured group (the name)
+            const doubleFirst = (match.index > 0) && (input[match.index-1] == '{');
+            const doubleLast = (match.index+match[0].length+1 < input.length) &&
+                  (input[match.index+match[0].length+1] == '}');
+            if (!(doubleFirst && doubleLast)) {
+                placeholders.add(match[1]); // Add the captured group (the name)
+            }
         }
         return placeholders;
     }
@@ -35,9 +38,10 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
             const id = e.attr('id');
 
             try {
-                const originaltext = mw.riskutils.hexToString(e.data('originaltexthex'));
-                const paramMap = JSON.parse(mw.riskutils.hexToString(e.data('paramshex') || '6865783a7b7d')); // hex for "{}"
+                const originaltext = mw.riskutils.hexToString(e.data('originaltexthex') || '');
+                const paramMap = JSON.parse(mw.riskutils.hexToString(e.data('paramshex') || '7b7d')); // hex for {}
                 const definedParams = new Set(Object.keys(paramMap));
+                definedParams.add('pagestate'); // Always defined
 
                 // 1. Find ALL placeholders, from the main text AND from all parameter expressions
                 const allPlaceholders = new Set(matchPlaceholders(originaltext));

@@ -569,7 +569,7 @@ class RiskiToolsHooks {
 
         $options = self::processTagAttributes($attribs);
 
-        $modelContent = $content; // Default to tag content
+        $modelContent = $content ?? ''; // Default to tag content
         $dbParams = [];
 
         // 1. Extract local data- attributes from the <riskdisplay> tag
@@ -591,7 +591,7 @@ class RiskiToolsHooks {
             $dbParams = self::fetchRiskModelParams($modelRow['rm_id']);
 
             // Use model's content *only if* tag content is empty
-            if (empty(trim($content))) {
+            if (empty(trim($content ?? ''))) {
                 $modelContent = $modelRow['rm_text'];
             }
             // else: $modelContent remains the tag's inner content

@@ -10,6 +10,7 @@ mw.riskutils = mw.riskutils || {};
      * @returns {string} The decoded string.
      */
     utils.hexToString = function(hex) {
+        if (!hex || hex.length < 2) return '';
         const bytes = new Uint8Array(hex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
         return new TextDecoder().decode(bytes);
     }
