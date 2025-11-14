@@ -12,6 +12,7 @@ class RiskiToolsHooks {
      */
     public static function onParserFirstCallInit(Parser &$parser) {
         $parser->setHook('dropdown', [self::class, 'renderDropDown']);
+        $parser->setHook('slider', [self::class, 'renderSlider']);
         $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
         $parser->setHook('riskdisplay', [self::class, 'renderRiskDisplay']);
         $parser->setHook('riskparameter', [self::class, 'renderRiskParameter']);
@@ -308,6 +309,35 @@ class RiskiToolsHooks {
         $output = self::generateDivOrSpan('span', 'RiskiUI DropDown', '', $attributes);
 
         return $output;
+    }
+
+    /**
+     * Render the <slider> tag.
+     */
+    public static function renderSlider( $input, array $args, Parser $parser, PPFrame $frame ) {
+        $parserOutput = $parser->getOutput();
+        $parserOutput->addModules(['ext.slider']);
+
+        $min = isset( $args['min'] ) ? (int)$args['min'] : 0;
+        $max = isset( $args['max'] ) ? (int)$args['max'] : 100;
+        $default = isset( $args['default'] ) ? (int)$args['default'] : $min+($max-$min)/2;
+
+        // Unique ID per instance
+        static $instance = 0;
+        $instance++;
+        $id = 'slider-instance-' . $instance;
+
+        $attributes = [
+            'id'          => $id,
+            'data-min'    => $min,
+            'data-max'    => $max,
+            'data-default'=> $default
+            ];
+
+        $output = self::generateDivOrSpan('div', 'RiskiUI riski-slider', '', $attributes);
+
+        return $output;
+
     }
 
     /**

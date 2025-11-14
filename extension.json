@@ -28,6 +28,14 @@
                 "extensions/RiskiTools/includes/ext.dropdown.js"
             ]
         },
+        "ext.slider": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.slider.js"
+            ],
+            "styles": [
+                "extensions/RiskiTools/includes/ext.slider.css"
+            ]
+        },
         "ext.riskdisplay": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.riskdisplay.js"
