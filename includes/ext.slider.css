@@ -1,65 +1,59 @@
 /* extensions/RiskiTools/includes/ext.slider.css */
 
-/* Container – keep layout clean */
 .riski-slider {
     width: 300px;
     margin: 15px 0;
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-/* Use Codex default field styling */
-.riski-slider-input .oo-ui-numberInputWidget-field {
-    width: 100%;
-    height: 2em;
-    padding: 0;
-    border: none;
-    background: transparent;
-}
-
-/* Hide +/- buttons to make it a pure slider */
-.riski-slider-input .oo-ui-numberInputWidget-minusButton,
-.riski-slider-input .oo-ui-numberInputWidget-plusButton {
-    display: none;
-}
-
-/* Track (background bar) – use Codex neutral gray */
-.riski-slider-input .oo-ui-numberInputWidget-slider {
-    height: 0.4em;
-    background: var(--cdx-color-background-base, #f8f9fa); /* Codex fallback */
-    border: 1px solid var(--cdx-color-border-subtle, #c8ccd1);
-    border-radius: 0.2em;
-    margin: 0.8em 0.8em;
-}
-
-/* Filled portion (progress) – use Codex primary */
-.riski-slider-input .oo-ui-numberInputWidget-selection {
-    background: var(--cdx-color-progressive, #36c);
-    border-radius: 0.2em;
-    height: 100%;
-}
-
-/* Handle – default Codex style, round, subtle shadow */
-.riski-slider-input .oo-ui-numberInputWidget-handle {
-    width: 1.4em;
-    height: 1.4em;
-    border-radius: 50%;
-    background: var(--cdx-color-surface-1, #ffffff);
-    border: 1px solid var(--cdx-color-border-subtle, #a2a9b1);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
-    top: -0.5em;
-    transition: border 0.2s, box-shadow 0.2s;
-}
-
-/* Focus state – Codex standard */
-.riski-slider-input .oo-ui-numberInputWidget-handle:focus {
+/* Slider track */
+.riski-slider-native {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 6px;
+    background: #eaecf0;
+    border-radius: 3px;
     outline: none;
-    border-color: var(--cdx-color-progressive, #36c);
-    box-shadow: 0 0 0 2px var(--cdx-color-progressive--focus, rgba(51, 102, 204, 0.3));
+    margin: 0;
 }
 
-/* Hover – subtle feedback */
-.riski-slider-input .oo-ui-numberInputWidget-handle:hover {
-    border-color: var(--cdx-color-border-focused, #72777d);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+/* WebKit thumb */
+.riski-slider-native::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border: 2px solid #36c;
+    border-radius: 50%;
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Firefox thumb */
+.riski-slider-native::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border: 2px solid #36c;
+    border-radius: 50%;
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Focus */
+.riski-slider-native:focus::-webkit-slider-thumb,
+.riski-slider-native:focus::-moz-range-thumb {
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(51,102,204,0.3);
+}
+
+/* Live value */
+.riski-slider-value {
+    min-width: 2ch;
+    font-family: monospace;
+    font-weight: bold;
+    color: #202122;
+    text-align: right;
 }

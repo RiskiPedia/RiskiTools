@@ -327,17 +327,19 @@ class RiskiToolsHooks {
         $instance++;
         $id = 'slider-instance-' . $instance;
 
-        $attributes = [
-            'id'          => $id,
-            'data-min'    => $min,
-            'data-max'    => $max,
-            'data-default'=> $default
-            ];
+        $html = Html::element( 'input', [
+                                   'type'  => 'range',
+                                   'id'    => $id,
+                                   'class' => 'riski-slider-native',
+                                   'min'   => $min,
+                                   'max'   => $max,
+                                   'value' => $default,
+                                   'step'  => 1,
+                                   'title' => $default  // initial tooltip
+                                   ] );
+        $parser->getOutput()->addModules( [ 'ext.slider' ] );
 
-        $output = self::generateDivOrSpan('div', 'RiskiUI riski-slider', '', $attributes);
-
-        return $output;
-
+        return $html;
     }
 
     /**
