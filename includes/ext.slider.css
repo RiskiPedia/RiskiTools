@@ -1,15 +1,7 @@
 /* extensions/RiskiTools/includes/ext.slider.css */
 
-.riski-slider {
-    width: 300px;
-    margin: 15px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
 /* Slider track */
-.riski-slider-native {
+.riski-slider {
     -webkit-appearance: none;
     flex: 1;
     height: 6px;
@@ -20,7 +12,7 @@
 }
 
 /* WebKit thumb */
-.riski-slider-native::-webkit-slider-thumb {
+.riski-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
@@ -32,7 +24,7 @@
 }
 
 /* Firefox thumb */
-.riski-slider-native::-moz-range-thumb {
+.riski-slider::-moz-range-thumb {
     width: 16px;
     height: 16px;
     background: #fff;
@@ -43,8 +35,8 @@
 }
 
 /* Focus */
-.riski-slider-native:focus::-webkit-slider-thumb,
-.riski-slider-native:focus::-moz-range-thumb {
+.riski-slider:focus::-webkit-slider-thumb,
+.riski-slider:focus::-moz-range-thumb {
     border-color: #0066cc;
     box-shadow: 0 0 0 3px rgba(51,102,204,0.3);
 }

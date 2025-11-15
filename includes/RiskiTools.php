@@ -330,7 +330,8 @@ class RiskiToolsHooks {
         $html = Html::element( 'input', [
                                    'type'  => 'range',
                                    'id'    => $id,
-                                   'class' => 'riski-slider-native',
+                                   'name'  => isset( $args['name'] ) ? $args['name'] : "",
+                                   'class' => 'riski-slider riski-slider-needsinit',
                                    'min'   => $min,
                                    'max'   => $max,
                                    'value' => $default,
