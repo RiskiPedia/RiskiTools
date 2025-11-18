@@ -13,6 +13,7 @@ class RiskiToolsHooks {
     public static function onParserFirstCallInit(Parser &$parser) {
         $parser->setHook('dropdown', [self::class, 'renderDropDown']);
         $parser->setHook('slider', [self::class, 'renderSlider']);
+        $parser->setHook('numberinput', [self::class, 'renderNumberInput']);
         $parser->setHook('riskmodel', [self::class, 'renderRiskModel']);
         $parser->setHook('riskdisplay', [self::class, 'renderRiskDisplay']);
         $parser->setHook('riskparameter', [self::class, 'renderRiskParameter']);
@@ -339,6 +340,37 @@ class RiskiToolsHooks {
                                    'title' => $default  // initial tooltip
                                    ] );
         $parser->getOutput()->addModules( [ 'ext.slider' ] );
+
+        return $html;
+    }
+
+    public static function renderNumberInput( $input, array $args, Parser $parser, PPFrame $frame ) {
+        $min = isset( $args['min'] ) ? (int)$args['min'] : 0;
+        $max = isset( $args['max'] ) ? (int)$args['max'] : 100;
+        $default = isset( $args['default'] ) ? (int)$args['default'] : $min;
+        $step = isset( $args['step'] ) ? (int)$args['step'] : 1;
+        $name = isset( $args['name'] ) ? trim( $args['name'] ) : '';
+
+        // Clamp default
+        if ( $default < $min ) $default = $min;
+        if ( $default > $max ) $default = $max;
+
+        static $instance = 0;
+        $instance++;
+        $id = 'numberinput-instance-' . $instance;
+
+        $html = Html::element( 'input', [
+                                   'type'  => 'number',
+                                   'id'    => $id,
+                                   'class' => 'riski-number-input',
+                                   'min'   => $min,
+                                   'max'   => $max,
+                                   'value' => $default,
+                                   'step'  => $step,
+                                   'name'  => $name ?: null  // Only include name="" if provided
+                                   ] );
+
+        $parser->getOutput()->addModules( [ 'ext.numberinput' ] );
 
         return $html;
     }

@@ -36,6 +36,15 @@
                 "extensions/RiskiTools/includes/ext.slider.css"
             ]
         },
+        "ext.numberinput": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.numberinput.js"
+            ],
+            "styles": [
+                "extensions/RiskiTools/includes/ext.numberinput.css"
+            ],
+            "dependencies": []
+        },
         "ext.riskdisplay": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.riskdisplay.js"

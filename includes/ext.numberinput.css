@@ -1,0 +1,25 @@
+/* extensions/RiskiTools/includes/ext.numberinput.css */
+
+.riski-number-input {
+    width: 100px;
+    padding: 4px 8px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid #a2a9b1;
+    border-radius: 2px;
+    background-color: #fff;
+}
+
+.riski-number-input:focus {
+    border-color: #36c;
+    box-shadow: 0 0 0 2px rgba(51,102,204,0.3);
+    outline: none;
+}
+
+.riski-number-value {
+    margin-left: 8px;
+    font-weight: bold;
+    color: #202122;
+    min-width: 2ch;
+    display: inline-block;
+}
