@@ -1,5 +1,5 @@
 // extensions/RiskiTools/includes/ext.slider.js
-mw.loader.using( [ 'ext.pagestate' ] ).then( function () {
+mw.loader.using( [ 'ext.pagestate','ext.riskutils' ] ).then( function () {
     'use strict';
 
     function initSliders( $content ) {

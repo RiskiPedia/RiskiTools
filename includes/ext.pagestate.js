@@ -91,7 +91,7 @@ window.RT = window.RT || {};
 window.RT.pagestate = p;
 window.RT.pagedata = window.RT.pagedata || {};
 
-mw.loader.using([], function () {
+mw.loader.using(['ext.riskutils'], function () {
     // Create an observer to watch for removals and clean up pagestate
     const observer = new MutationObserver(function(mutations) {
 
