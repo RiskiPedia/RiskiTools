@@ -347,13 +347,13 @@ class RiskiToolsHooks {
     public static function renderNumberInput( $input, array $args, Parser $parser, PPFrame $frame ) {
         $min = isset( $args['min'] ) ? (int)$args['min'] : 0;
         $max = isset( $args['max'] ) ? (int)$args['max'] : 100;
-        $default = isset( $args['default'] ) ? (int)$args['default'] : $min;
-        $step = isset( $args['step'] ) ? (int)$args['step'] : 1;
+        $default = isset( $args['default'] ) ? (int)$args['default'] : null;
+        $step = isset( $args['step'] ) ? $args['step'] : 1;
         $name = isset( $args['name'] ) ? trim( $args['name'] ) : '';
 
         // Clamp default
-        if ( $default < $min ) $default = $min;
-        if ( $default > $max ) $default = $max;
+        if ( $default !== null && ($default < $min) ) $default = $min;
+        if ( $default !== null && ($default > $max) ) $default = $max;
 
         static $instance = 0;
         $instance++;

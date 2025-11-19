@@ -1,35 +1,42 @@
 // extensions/RiskiTools/includes/ext.numberinput.js
-mw.loader.using( ['ext.pagestate','ext.riskutils'] ).then( function () {
+mw.loader.using(['ext.pagestate', 'ext.riskutils']).then(function () {
     'use strict';
 
-    function initNumberInputs( $content ) {
-        const allInitialStateChanges = {}; // Accumulator for all states
+    function initNumberInputs($content) {
+        const initialState = {};
 
-        $content.find( '.riski-number-input' ).each( function () {
-            var $input = $( this );
-            var statevar = ($input.attr("name") || '').trim();
+        $content.find('.riski-number-input').each(function () {
+            const $input = $(this);
+            const name = ($input.attr('name') || '').trim();
 
-            if (statevar) {
-                if (RT.pagestate.hasPageState(statevar)) {
-                    $input.val(RT.pagestate.getPageState(statevar));
-                } else {
-                    Object.assign(allInitialStateChanges, { [statevar] : $input.val() });
+            if (!name) return; // Skip if no statevar not set
+
+            const currentValue = $input.val().trim();
+
+            // Restore saved value if exists
+            if (RT.pagestate.hasPageState(name)) {
+                const saved = RT.pagestate.getPageState(name);
+                if (saved !== currentValue) {
+                    $input.val(saved);
                 }
+                // No need to re-fire — pagestate already knows
+            } else if (currentValue != "") {
+                // Queue initial value for batch set
+                initialState[name] = currentValue;
             }
-
-            // Final save when user is "done" (blur, Enter, arrows finish)
-            if (statevar) {
-                $input.on( 'change', function () {
-                    var val = this.value;
-                    RT.pagestate.setPageState(statevar, val);
-                } );
-            }
-        } );
-        // After the loop, set all initial states at once.
-        if (Object.keys(allInitialStateChanges).length > 0) {
-            RT.pagestate.setPageStates(allInitialStateChanges);
+            // Save on change (blur, Enter, arrows)
+            $input.on('change', function () {
+                if (this.value != "") {
+                    RT.pagestate.setPageState(name, this.value);
+                } else {
+                    RT.pagestate.deletePageState(name);
+                }
+            });
+        });
+        // Batch-initialize all new variables
+        if (Object.keys(initialState).length) {
+            RT.pagestate.setPageStates(initialState);
         }
     }
-
-    mw.hook( 'wikipage.content' ).add( initNumberInputs );
-} );
+    mw.hook('wikipage.content').add(initNumberInputs);
+});
