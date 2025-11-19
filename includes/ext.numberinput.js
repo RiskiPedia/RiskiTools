@@ -27,6 +27,11 @@ mw.loader.using(['ext.pagestate', 'ext.riskutils']).then(function () {
             // Save on change (blur, Enter, arrows)
             $input.on('change', function () {
                 if (this.value != "") {
+                    if (this.value < $input.attr('min')) {
+                        this.value = $input.attr('min');
+                    } else if (this.value > $input.attr('max')) {
+                        this.value = $input.attr('max');
+                    }
                     RT.pagestate.setPageState(name, this.value);
                 } else {
                     RT.pagestate.deletePageState(name);

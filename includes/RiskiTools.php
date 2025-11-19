@@ -350,6 +350,7 @@ class RiskiToolsHooks {
         $default = isset( $args['default'] ) ? (int)$args['default'] : null;
         $step = isset( $args['step'] ) ? $args['step'] : 1;
         $name = isset( $args['name'] ) ? trim( $args['name'] ) : '';
+        $styleAttr = isset( $args['style'] ) ? trim( $args['style'] ) : '';
 
         // Clamp default
         if ( $default !== null && ($default < $min) ) $default = $min;
@@ -367,7 +368,8 @@ class RiskiToolsHooks {
                                    'max'   => $max,
                                    'value' => $default,
                                    'step'  => $step,
-                                   'name'  => $name ?: null  // Only include name="" if provided
+                                   'name'  => $name ?: null,  // Only include name="" if provided
+                                   'style' => $styleAttr
                                    ] );
 
         $parser->getOutput()->addModules( [ 'ext.numberinput' ] );
