@@ -120,13 +120,12 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'
         if (Object.keys(requests).length > 0) {
             var pageTitle = mw.config.get('wgPageName');
             var namespace = mw.config.get('wgCanonicalNamespace');
-            var fullTitle = namespace ? (namespace + ':' + pageTitle) : pageTitle;
 
             var api = new mw.Api();
             api.postWithToken('csrf', {
                 action: 'riskparse',
                 format: 'json',
-                title: fullTitle,
+                title: pageTitle,
                 requests: JSON.stringify(requests) // Send the entire batch of structured objects
             }).then( ( data ) => {
                 if (data.riskparse && data.riskparse.results) {
