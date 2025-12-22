@@ -18,6 +18,7 @@ class RiskiToolsHooks {
         $parser->setHook('riskdisplay', [self::class, 'renderRiskDisplay']);
         $parser->setHook('riskparameter', [self::class, 'renderRiskParameter']);
         $parser->setHook('riskdatalookup', [self::class, 'renderRiskDataLookup']);
+        $parser->setHook('methodology', [self::class, 'renderMethodology']);
         return true;
     }
 
@@ -347,6 +348,45 @@ class RiskiToolsHooks {
                                    ] );
 
         $parser->getOutput()->addModules( [ 'ext.numberinput' ] );
+
+        return $html;
+    }
+
+    /**
+     * Renders a <methodology> tag - a collapsible section containing
+     * technical content (RiskData tables, RiskModels, references, etc.)
+     *
+     * @param string $content Inner content of the tag (will be recursively parsed)
+     * @param array $attribs Tag attributes (e.g., ['label' => 'Show Methodology'])
+     * @param Parser $parser The MediaWiki parser instance
+     * @param PPFrame $frame The preprocessor frame
+     * @return string Output HTML
+     */
+    public static function renderMethodology($content, array $attribs, Parser $parser, PPFrame $frame) {
+        $parserOutput = $parser->getOutput();
+
+        // Ensure jquery.makeCollapsible is loaded
+        $parserOutput->addModules(['jquery.makeCollapsible']);
+        $parserOutput->addModuleStyles(['ext.methodology']);
+
+        $options = self::processTagAttributes($attribs);
+
+        // Get configurable label, default to "Data, Models and References"
+        $label = $options['label'] ?? 'Data, Models and References';
+        $labelHtml = htmlspecialchars($label);
+
+        // Recursively parse the inner content so RiskData/RiskModel tags are processed
+        $parsedContent = $parser->recursiveTagParse($content, $frame);
+
+        // Build the collapsible HTML structure
+        $html = '<div class="mw-collapsible mw-collapsed methodology-section">';
+        $html .= '<div class="mw-collapsible-toggle">';
+        $html .= '<span class="methodology-label">' . $labelHtml . '</span>';
+        $html .= '</div>';
+        $html .= '<div class="mw-collapsible-content">';
+        $html .= $parsedContent;
+        $html .= '</div>';
+        $html .= '</div>';
 
         return $html;
     }

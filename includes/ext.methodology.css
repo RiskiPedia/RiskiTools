@@ -1,0 +1,41 @@
+/* Styling for the <methodology> collapsible section */
+.methodology-section {
+    border: 1px solid #c8ccd1;
+    border-radius: 2px;
+    margin: 1em 0;
+    padding: 0.5em;
+    background-color: #f8f9fa;
+}
+
+.methodology-section .mw-collapsible-toggle {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0.5em;
+    user-select: none;
+}
+
+.methodology-section .mw-collapsible-toggle:hover {
+    background-color: #eaecf0;
+}
+
+.methodology-section .mw-collapsible-content {
+    padding: 1em 0.5em;
+    margin-top: 0.5em;
+    border-top: 1px solid #c8ccd1;
+}
+
+.methodology-label {
+    color: #202122;
+}
+
+/* Add expand/collapse icon indicator */
+.methodology-section .mw-collapsible-toggle::before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 0.5em;
+    transition: transform 0.2s;
+}
+
+.methodology-section:not(.mw-collapsed) .mw-collapsible-toggle::before {
+    transform: rotate(90deg);
+}

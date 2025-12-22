@@ -59,6 +59,11 @@
             "scripts": [
                 "extensions/RiskiTools/includes/ext.riskdatalookup.js"
             ]
+        },
+        "ext.methodology": {
+            "styles": [
+                "extensions/RiskiTools/includes/ext.methodology.css"
+            ]
         }
     },
     "Hooks": {
