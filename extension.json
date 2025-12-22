@@ -66,6 +66,7 @@
         "PageDelete": "RiskiToolsHooks::onPageDelete",
 	"LoadExtensionSchemaUpdates": "RiskiToolsHooks::onLoadExtensionSchemaUpdates",
         "ParserFirstCallInit": "RiskiToolsHooks::onParserFirstCallInit",
+        "ParserAfterTidy": "RiskiToolsHooks::onParserAfterTidy",
         "RevisionFromEditComplete": "RiskiToolsHooks::onRevisionFromEditComplete"
     },
     "AutoloadClasses": {

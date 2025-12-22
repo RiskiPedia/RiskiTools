@@ -141,7 +141,22 @@ class RiskiToolsHooks {
      * Returns null if tableName can't be found, otherwise returns
      * a Title object that is the fully-qualified name.
      */
-    public static function fullyResolveDT2Title($tableName, $pageTitle) {
+    public static function fullyResolveDT2Title($tableName, $pageTitle, $parser = null) {
+        // Check current parse first (for forward references within same page)
+        if ($parser !== null) {
+            $parserOutput = $parser->getOutput();
+            $pageTables = $parserOutput->getExtensionData('riskdata_tables') ?: [];
+
+            foreach ([$tableName, "$pageTitle$tableName", "$pageTitle:$tableName", "$pageTitle/Data:$tableName"] as $t) {
+                $fqTable = RiskDataParser::table2title($t);
+                $fqTableKey = $fqTable->getDBkey();
+                if (isset($pageTables[$fqTableKey])) {
+                    return $fqTable;
+                }
+            }
+        }
+
+        // Fall back to database lookup
         $dt2db = RiskData::singleton()->getDatabase();
 
         foreach ([$tableName, "$pageTitle$tableName", "$pageTitle:$tableName", "$pageTitle/Data:$tableName"] as $t) {
@@ -253,63 +268,22 @@ class RiskiToolsHooks {
      * @throws MWException If RiskData is not loaded.
      */
     public static function renderDropDown($content, array $attribs, Parser $parser, PPFrame $frame) {
-        if (!ExtensionRegistry::getInstance()->isLoaded('RiskData')) {
-            throw new MWException('RiskData extension is required but not loaded.');
-        }
-        $dt2 = RiskData::singleton();
-
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.dropdown']);
-        
-        $options = self::processTagAttributes($attribs);
-        if (!isset($options['table'])) {
-            return self::formatError('dropdown: missing table attribute');
-        }
-        
-        $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText());
-        if ($table === null) {
-            return self::formatError('dropdown: cannot find RiskData table ' . htmlspecialchars($options['table']));
-        }
 
-        $title = $options['title'] ?? 'Select';
-        $alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
-        if (count($alldata) < 1) {
-            return self::formatError('dropdown: empty RiskData table ' . htmlspecialchars($table));
-        }
-        
-        foreach ($alldata as &$item) {
-            unset($item['__pageId']);
-        }
-        
-        $managedKeys = array_keys($alldata[0]);
+        // Defer rendering until after all riskdata tags are processed
+        $deferred = $parserOutput->getExtensionData('riskitools_deferred_dropdowns') ?: [];
+        $placeholder = "<!--DROPDOWN-" . count($deferred) . "-->";
 
-        $column_names = array_keys($alldata[0]);
-        $label_column = $options['label_column'] ?? $column_names[0];
-        
-        if (!in_array($label_column, $column_names)) {
-            $errmsg = 'dropdown: no column named ' . htmlspecialchars($label_column);
-            $errmsg .= ' (valid columns are: ' . htmlspecialchars(implode(' ', $column_names)) . ')';
-            return self::formatError($errmsg);
-        }
-        // For simplicity, we re-arrange the array so the label column is always first:
-        if ($label_column != $column_names[0]) {
-            $alldata = self::rearrangeArrayByColumn($alldata, $label_column);
-        }
-        
-        $data = json_encode($alldata);
-        
-        $attributes = [
-            'data-title' => $title,
-            'data-choiceshex' => bin2hex($data)
+        $deferred[] = [
+            'content' => $content,
+            'attribs' => $attribs,
+            'placeholder' => $placeholder
         ];
-        if (isset($options['default'])) { $attributes['data-default'] = $options['default']; }
-        if (isset($options['default-index'])) { $attributes['data-default-index'] = $options['default-index']; }
 
-        $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
+        $parserOutput->setExtensionData('riskitools_deferred_dropdowns', $deferred);
 
-        $output = self::generateDivOrSpan('span', 'RiskiUI DropDown', '', $attributes);
-
-        return $output;
+        return $placeholder;
     }
 
     /**
@@ -502,6 +476,38 @@ class RiskiToolsHooks {
 	return true;
     }
 
+    /**
+     * Hook called after parsing is complete. Renders deferred tags.
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param string &$text The parsed text (by reference, we can modify it).
+     */
+    public static function onParserAfterTidy( Parser $parser, &$text ) {
+        $parserOutput = $parser->getOutput();
+
+        // Process deferred riskdisplay tags
+        $deferredDisplays = $parserOutput->getExtensionData('riskitools_deferred_displays') ?: [];
+        foreach ($deferredDisplays as $display) {
+            $rendered = self::renderRiskDisplayDeferred($display, $parser);
+            $text = str_replace($display['placeholder'], $rendered, $text);
+        }
+
+        // Process deferred dropdown tags
+        $deferredDropdowns = $parserOutput->getExtensionData('riskitools_deferred_dropdowns') ?: [];
+        foreach ($deferredDropdowns as $dropdown) {
+            $rendered = self::renderDropDownDeferred($dropdown, $parser);
+            $text = str_replace($dropdown['placeholder'], $rendered, $text);
+        }
+
+        // Process deferred riskdatalookup tags
+        $deferredLookups = $parserOutput->getExtensionData('riskitools_deferred_lookups') ?: [];
+        foreach ($deferredLookups as $lookup) {
+            $rendered = self::renderRiskDataLookupDeferred($lookup, $parser);
+            $text = str_replace($lookup['placeholder'], $rendered, $text);
+        }
+
+        return true;
+    }
+
 /**
      * Renders a <RiskModel>
      *
@@ -541,6 +547,15 @@ class RiskiToolsHooks {
 
         $sortedNames = $sortResult['sorted'];
 
+        // Store model in ParserOutput for same-page access (enables forward references)
+        $pageModels = $parserOutput->getExtensionData('riskitools_models') ?: [];
+        $pageModels[$options['name']] = [
+            'content' => $content,
+            'params' => $parameters,
+            'sorted_names' => $sortedNames
+        ];
+        $parserOutput->setExtensionData('riskitools_models', $pageModels);
+
         // 4. Display the sorted parameters for testing
         $output = "<pre>\n";
         $output .= "RiskModel: " . htmlspecialchars($fullRiskModelTitle) . "\n";
@@ -576,9 +591,29 @@ class RiskiToolsHooks {
      * If a fully-qualified name is not given, automatically look
      * for the model on the current page OR a Data/ subpage.
      * Returns null if modelName can't be found, otherwise returns
-     * the riskModel data (row from the database)
+     * the riskModel data (row from the database or ParserOutput)
+     * @param string $modelName The name of the model to fetch
+     * @param string $pageTitle The page title context
+     * @param Parser|null $parser Optional parser for accessing in-memory models
      */
-    public static function fetchRiskModel($modelName, $pageTitle) {
+    public static function fetchRiskModel($modelName, $pageTitle, $parser = null) {
+        // Check current parse first (for forward references within same page)
+        if ($parser !== null) {
+            $parserOutput = $parser->getOutput();
+            $pageModels = $parserOutput->getExtensionData('riskitools_models') ?: [];
+
+            // Try exact name first
+            if (isset($pageModels[$modelName])) {
+                return [
+                    'rm_id' => null,  // Temporary - indicates in-memory model
+                    'rm_text' => $pageModels[$modelName]['content'],
+                    'rm_params' => $pageModels[$modelName]['params'],
+                    'rm_sorted_names' => $pageModels[$modelName]['sorted_names']
+                ];
+            }
+        }
+
+        // Fall back to existing database lookup
         $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
         foreach ([$modelName, "$pageTitle:$modelName", "$pageTitle/Data:$modelName"] as $t) {
 
@@ -602,10 +637,22 @@ class RiskiToolsHooks {
 
     /**
      * Fetches all parameters for a given risk model, in their pre-sorted order.
-     * @param int $modelId The rm_id of the model.
+     * @param int|null $modelId The rm_id of the model (null for in-memory models).
+     * @param array|null $modelData Optional model data from ParserOutput (for in-memory models).
      * @return array Associative array of [param_name => expression]
      */
-    private static function fetchRiskModelParams($modelId) {
+    private static function fetchRiskModelParams($modelId, $modelData = null) {
+        // If modelData contains params (from in-memory model), return directly
+        if ($modelData !== null && isset($modelData['rm_params'])) {
+            return $modelData['rm_params'];
+        }
+
+        // If modelId is null, no params available
+        if ($modelId === null) {
+            return [];
+        }
+
+        // Fetch from database
         $db = MediaWikiServices::getInstance()->getDBLoadBalancer()->getConnection( DB_REPLICA );
         $res = $db->select(
             'riskitools_riskmodel_params',
@@ -634,69 +681,19 @@ class RiskiToolsHooks {
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.riskdisplay']);
 
-        $options = self::processTagAttributes($attribs);
+        // Defer rendering until after all riskmodel tags are processed
+        $deferred = $parserOutput->getExtensionData('riskitools_deferred_displays') ?: [];
+        $placeholder = "<!--RISKDISPLAY-" . count($deferred) . "-->";
 
-        $modelContent = $content ?? ''; // Default to tag content
-        $dbParams = [];
-
-        // 1. Extract local data- attributes from the <riskdisplay> tag
-        $localParams = [];
-        foreach ($options as $key => $value) {
-            if (strpos($key, 'data-') === 0) {
-                $localParams[substr($key, 5)] = $value;
-            }
-        }
-
-        // 2. If a model= attribute is specified, fetch its data
-        if (isset($options['model'])) {
-            $modelRow = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText());
-            if ($modelRow === null) {
-                return self::formatError("riskdisplay: can't find riskmodel named " . htmlspecialchars($options['model']));
-            }
-
-            // Fetch the model's pre-sorted parameters
-            $dbParams = self::fetchRiskModelParams($modelRow['rm_id']);
-
-            // Use model's content *only if* tag content is empty
-            if (empty(trim($content ?? ''))) {
-                $modelContent = $modelRow['rm_text'];
-            }
-            // else: $modelContent remains the tag's inner content
-        }
-
-        // 3. Merge parameters: local <riskdisplay> data- attributes override the model's
-        $mergedParams = array_merge($dbParams, $localParams);
-
-        // 4. Re-sort the merged parameters to ensure correct dependency order
-        $sortResult = self::topologicalSortParameters($mergedParams);
-
-        if ($sortResult['error']) {
-            $modelName = $options['model'] ?? '[inline model]';
-            return self::formatError('riskdisplay (' . htmlspecialchars($modelName) . '): ' . $sortResult['error']);
-        }
-
-        // 5. Build the final, sorted parameter list to send to the client
-        $sortedParams = [];
-        foreach ($sortResult['sorted'] as $name) {
-            $sortedParams[$name] = $mergedParams[$name];
-        }
-
-        // 6. Handle the placeholder attribute
-        $placeholderHTML = "";
-        if (isset($options['placeholder'])) {
-            $placeholderHTML = $parser->recursiveTagParse($options['placeholder'], $frame);
-        }
-
-        // 7. Generate output tag with all data for the JavaScript
-        $attributes = [
-            'data-originaltexthex' => bin2hex($modelContent),
-            'data-paramshex' => bin2hex(json_encode($sortedParams)),
-            'data-placeholderhtmlhex' => bin2hex($placeholderHTML),
-            'id' => bin2hex(random_bytes(16))
+        $deferred[] = [
+            'content' => $content,
+            'attribs' => $attribs,
+            'placeholder' => $placeholder
         ];
-        $output = self::generateDivOrSpan("div", "RiskiUI RiskDisplay", $placeholderHTML, $attributes);
 
-        return $output;
+        $parserOutput->setExtensionData('riskitools_deferred_displays', $deferred);
+
+        return $placeholder;
     }
 
     /**
@@ -744,34 +741,231 @@ class RiskiToolsHooks {
     public static function renderRiskDataLookup($content, array $attribs, Parser $parser, PPFrame $frame) {
         $parserOutput = $parser->getOutput();
         $parserOutput->addModules(['ext.riskdatalookup']);
+
+        // Defer rendering until after all riskdata tags are processed
+        $deferred = $parserOutput->getExtensionData('riskitools_deferred_lookups') ?: [];
+        $placeholder = "<!--RISKDATALOOKUP-" . count($deferred) . "-->";
+
+        $deferred[] = [
+            'content' => $content,
+            'attribs' => $attribs,
+            'placeholder' => $placeholder
+        ];
+
+        $parserOutput->setExtensionData('riskitools_deferred_lookups', $deferred);
+
+        return $placeholder;
+    }
+
+    /**
+     * Renders a deferred RiskDisplay tag after all riskmodel tags are processed.
+     * @param array $display Deferred display data
+     * @param Parser $parser The MediaWiki parser instance
+     * @return string Rendered HTML
+     */
+    private static function renderRiskDisplayDeferred($display, Parser $parser) {
+        $content = $display['content'];
+        $options = self::processTagAttributes($display['attribs']);
+
+        $modelContent = $content ?? '';
+        $dbParams = [];
+
+        // Extract local data- attributes from the <riskdisplay> tag
+        $localParams = [];
+        foreach ($options as $key => $value) {
+            if (strpos($key, 'data-') === 0) {
+                $localParams[substr($key, 5)] = $value;
+            }
+        }
+
+        // If a model= attribute is specified, fetch its data
+        if (isset($options['model'])) {
+            $modelRow = self::fetchRiskModel($options['model'], $parser->getTitle()->getPrefixedText(), $parser);
+            if ($modelRow === null) {
+                return self::formatError("riskdisplay: can't find riskmodel named " . htmlspecialchars($options['model']));
+            }
+
+            // Fetch the model's pre-sorted parameters
+            $dbParams = self::fetchRiskModelParams($modelRow['rm_id'], $modelRow);
+
+            // Use model's content only if tag content is empty
+            if (empty(trim($content ?? ''))) {
+                $modelContent = $modelRow['rm_text'];
+            }
+        }
+
+        // Merge parameters: local <riskdisplay> data- attributes override the model's
+        $mergedParams = array_merge($dbParams, $localParams);
+
+        // Re-sort the merged parameters to ensure correct dependency order
+        $sortResult = self::topologicalSortParameters($mergedParams);
+
+        if ($sortResult['error']) {
+            $modelName = $options['model'] ?? '[inline model]';
+            return self::formatError('riskdisplay (' . htmlspecialchars($modelName) . '): ' . $sortResult['error']);
+        }
+
+        // Build the final, sorted parameter list to send to the client
+        $sortedParams = [];
+        foreach ($sortResult['sorted'] as $name) {
+            $sortedParams[$name] = $mergedParams[$name];
+        }
+
+        // Handle the placeholder attribute
+        $placeholderHTML = "";
+        if (isset($options['placeholder'])) {
+            $placeholderHTML = $parser->recursiveTagParse($options['placeholder']);
+        }
+
+        // Generate output tag with all data for the JavaScript
+        $attributes = [
+            'data-originaltexthex' => bin2hex($modelContent),
+            'data-paramshex' => bin2hex(json_encode($sortedParams)),
+            'data-placeholderhtmlhex' => bin2hex($placeholderHTML),
+            'id' => bin2hex(random_bytes(16))
+        ];
+        $output = self::generateDivOrSpan("div", "RiskiUI RiskDisplay", $placeholderHTML, $attributes);
+
+        return $output;
+    }
+
+    /**
+     * Renders a deferred DropDown tag after all riskdata tags are processed.
+     * @param array $dropdown Deferred dropdown data
+     * @param Parser $parser The MediaWiki parser instance
+     * @return string Rendered HTML
+     */
+    private static function renderDropDownDeferred($dropdown, Parser $parser) {
+        if (!ExtensionRegistry::getInstance()->isLoaded('RiskData')) {
+            throw new MWException('RiskData extension is required but not loaded.');
+        }
         $dt2 = RiskData::singleton();
 
-        $options = self::processTagAttributes($attribs);
+        $options = self::processTagAttributes($dropdown['attribs']);
+        if (!isset($options['table'])) {
+            return self::formatError('dropdown: missing table attribute');
+        }
+
+        $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText(), $parser);
+        if ($table === null) {
+            return self::formatError('dropdown: cannot find RiskData table ' . htmlspecialchars($options['table']));
+        }
+
+        $title = $options['title'] ?? 'Select';
+
+        // Check if table data is in ParserOutput (for forward references)
+        $parserOutput = $parser->getOutput();
+        $pageTables = $parserOutput->getExtensionData('riskdata_tables') ?: [];
+        $fqTableKey = $table->getDBkey();
+
+        if (isset($pageTables[$fqTableKey])) {
+            // Use data from ParserOutput
+            $alldata = $pageTables[$fqTableKey]['records'];
+        } else {
+            // Fall back to database
+            $alldata = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
+        }
+
+        if (count($alldata) < 1) {
+            return self::formatError('dropdown: empty RiskData table ' . htmlspecialchars($table));
+        }
+
+        foreach ($alldata as &$item) {
+            unset($item['__pageId']);
+        }
+
+        $managedKeys = array_keys($alldata[0]);
+
+        $column_names = array_keys($alldata[0]);
+        $label_column = $options['label_column'] ?? $column_names[0];
+
+        if (!in_array($label_column, $column_names)) {
+            $errmsg = 'dropdown: no column named ' . htmlspecialchars($label_column);
+            $errmsg .= ' (valid columns are: ' . htmlspecialchars(implode(' ', $column_names)) . ')';
+            return self::formatError($errmsg);
+        }
+
+        if ($label_column != $column_names[0]) {
+            $alldata = self::rearrangeArrayByColumn($alldata, $label_column);
+        }
+
+        $data = json_encode($alldata);
+
+        $attributes = [
+            'data-title' => $title,
+            'data-choiceshex' => bin2hex($data)
+        ];
+        if (isset($options['default'])) { $attributes['data-default'] = $options['default']; }
+        if (isset($options['default-index'])) { $attributes['data-default-index'] = $options['default-index']; }
+
+        $attributes = array_merge($attributes, self::getManagedKeysAttribute($managedKeys));
+
+        $output = self::generateDivOrSpan('span', 'RiskiUI DropDown', '', $attributes);
+
+        return $output;
+    }
+
+    /**
+     * Renders a deferred RiskDataLookup tag after all riskdata tags are processed.
+     * @param array $lookup Deferred lookup data
+     * @param Parser $parser The MediaWiki parser instance
+     * @return string Rendered HTML
+     */
+    private static function renderRiskDataLookupDeferred($lookup, Parser $parser) {
+        $dt2 = RiskData::singleton();
+        $content = $lookup['content'];
+
+        $options = self::processTagAttributes($lookup['attribs']);
         if (!isset($options['table'])) {
             return self::formatError('riskdatalookup: missing table attribute');
         }
-        $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText());
+
+        $table = self::fullyResolveDT2Title($options['table'], $parser->getTitle()->getPrefixedText(), $parser);
         if ($table === null) {
             return self::formatError('riskdatalookup: cannot find RiskData table ' . htmlspecialchars($options['table']));
         }
-        $columns = $dt2->getDatabase()->getColumns($table->getDBkey());
+
+        // Check if table data is in ParserOutput (for forward references)
+        $parserOutput = $parser->getOutput();
+        $pageTables = $parserOutput->getExtensionData('riskdata_tables') ?: [];
+        $fqTableKey = $table->getDBkey();
+
+        if (isset($pageTables[$fqTableKey])) {
+            // Use data from ParserOutput
+            $columns = $pageTables[$fqTableKey]['columns'];
+            $data = $pageTables[$fqTableKey]['records'];
+        } else {
+            // Fall back to database
+            $columns = $dt2->getDatabase()->getColumns($table->getDBkey());
+            $data = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
+        }
 
         if (isset($options['row'])) {
             $row = $options['row'];
             $whereclause = $columns[0] . "='" . $options['row'] . "'";
-            $data = $dt2->getDatabase()->select($table, $whereclause, false, $pages, __METHOD__);
-            if (count($data) < 1) {
+
+            if (isset($pageTables[$fqTableKey])) {
+                // Filter in-memory data
+                $filtered = array_filter($data, function($item) use ($columns, $row) {
+                    return isset($item[$columns[0]]) && $item[$columns[0]] == $row;
+                });
+                $rowdata = !empty($filtered) ? array_values($filtered)[0] : null;
+            } else {
+                $queryData = $dt2->getDatabase()->select($table, $whereclause, false, $pages, __METHOD__);
+                $rowdata = count($queryData) > 0 ? $queryData[0] : null;
+            }
+
+            if ($rowdata === null) {
                 return self::formatError("riskdatalookup: can't find row " . $row . " in RiskData table " . $options['table']);
             }
-            $rowdata = $data[0];
         } else {
-            $row = intval($options['rowindex'] ?? "0");
-            $data = $dt2->getDatabase()->select($table, null, false, $pages, __METHOD__);
-            if (count($data) < $row+1) {
-                return self::formatError("riskdatalookup: can't find row " . $row . " in RiskData table " . $options['table']);
+            $rowIndex = intval($options['rowindex'] ?? "0");
+            if (count($data) < $rowIndex + 1) {
+                return self::formatError("riskdatalookup: can't find row " . $rowIndex . " in RiskData table " . $options['table']);
             }
-            $rowdata = $data[$row];
+            $rowdata = $data[$rowIndex];
         }
+
         unset($rowdata['__pageId']);
 
         $managedKeys = array_keys($rowdata);
