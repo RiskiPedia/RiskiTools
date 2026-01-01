@@ -20,7 +20,7 @@ class ApiRiskParse extends ApiBase {
 
         // Get the Title object for context
         $title = Title::newFromText( $pageTitleStr );
-        if ( !$title || !$title->exists() ) {
+        if ( !$title ) {
             $this->dieWithError( 'Invalid page title provided.', 'invalidtitle' );
         }
 
