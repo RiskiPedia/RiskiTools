@@ -306,12 +306,12 @@ WIKITEXT;
 		// Should NOT contain data-y-axis (only for single-series)
 		$this->assertStringNotContainsString( 'data-y-axis=', $output, 'Should not have data-y-axis for multi-series' );
 
-		// Extract and verify the JSON structure (MediaWiki double-encodes: &amp;quot;)
+		// Extract and verify the JSON structure
 		preg_match( '/data-series="([^"]*)"/', $output, $matches );
 		$this->assertNotEmpty( $matches, 'Should find data-series attribute' );
 
-		// Decode twice due to MediaWiki double-encoding
-		$seriesJson = html_entity_decode( html_entity_decode( $matches[1], ENT_QUOTES ), ENT_QUOTES );
+		// Decode once (MediaWiki may still encode the attribute value)
+		$seriesJson = html_entity_decode( $matches[1], ENT_QUOTES );
 		$series = json_decode( $seriesJson, true );
 
 		$this->assertIsArray( $series, 'Series data should be valid JSON array' );
@@ -347,9 +347,9 @@ WIKITEXT;
 
 		$output = $this->parseWikitext( $wikitext );
 
-		// Extract series JSON (MediaWiki double-encodes)
+		// Extract series JSON (MediaWiki may encode)
 		preg_match( '/data-series="([^"]*)"/', $output, $matches );
-		$seriesJson = html_entity_decode( html_entity_decode( $matches[1], ENT_QUOTES ), ENT_QUOTES );
+		$seriesJson = html_entity_decode( $matches[1], ENT_QUOTES );
 		$series = json_decode( $seriesJson, true );
 
 		// Verify colors are parsed correctly
@@ -373,9 +373,9 @@ WIKITEXT;
 
 		$output = $this->parseWikitext( $wikitext );
 
-		// Extract series JSON (MediaWiki double-encodes)
+		// Extract series JSON (MediaWiki may encode)
 		preg_match( '/data-series="([^"]*)"/', $output, $matches );
-		$seriesJson = html_entity_decode( html_entity_decode( $matches[1], ENT_QUOTES ), ENT_QUOTES );
+		$seriesJson = html_entity_decode( $matches[1], ENT_QUOTES );
 		$series = json_decode( $seriesJson, true );
 
 		// Verify parameters are parsed correctly

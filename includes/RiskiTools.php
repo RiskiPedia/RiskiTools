@@ -959,7 +959,8 @@ class RiskiToolsHooks {
             if ($jsonSeries === false) {
                 return self::formatError('riskgraph: failed to encode series data');
             }
-            $attributes['data-series'] = htmlspecialchars($jsonSeries, ENT_QUOTES);
+            // Don't use htmlspecialchars - data attributes are safe and jQuery expects raw JSON
+            $attributes['data-series'] = $jsonSeries;
         } else {
             // Single-series: use y-axis (backward compatibility)
             $attributes['data-y-axis'] = $config['y-axis'];

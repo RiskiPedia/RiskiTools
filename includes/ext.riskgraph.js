@@ -40,7 +40,7 @@
 		 * @return {Object} API request parameters
 		 */
 		buildApiRequest: function ( config, pagestate ) {
-			return {
+			const request = {
 				action: 'riskgraph',
 				model: config.model,
 				title: mw.config.get( 'wgPageName' ),
@@ -48,9 +48,17 @@
 				min: config.xMin,
 				max: config.xMax,
 				step: config.xStep,
-				yaxis: config.yAxis,
 				pagestate: JSON.stringify( pagestate )
 			};
+
+			// Multi-series or single-series
+			if ( config.series ) {
+				request.series = JSON.stringify( config.series );
+			} else {
+				request.yaxis = config.yAxis;
+			}
+
+			return request;
 		},
 
 		/**
@@ -89,6 +97,17 @@
 	 * Parse configuration from data attributes
 	 */
 	GraphManager.prototype.parseConfig = function () {
+		// jQuery auto-parses JSON from data attributes, but handle edge cases
+		let series = this.$el.data( 'series' );
+		if ( typeof series === 'string' ) {
+			try {
+				series = JSON.parse( series );
+			} catch ( e ) {
+				console.error( 'Failed to parse series JSON:', e );
+				series = null;
+			}
+		}
+
 		return {
 			model: this.$el.data( 'model' ),
 			type: this.$el.data( 'type' ) || 'line',
@@ -97,6 +116,7 @@
 			xMax: parseFloat( this.$el.data( 'xMax' ) ),
 			xStep: parseFloat( this.$el.data( 'xStep' ) ),
 			yAxis: this.$el.data( 'yAxis' ),
+			series: series,
 			title: this.$el.data( 'title' ),
 			xLabel: this.$el.data( 'xLabel' ),
 			yLabel: this.$el.data( 'yLabel' )
@@ -114,7 +134,7 @@
 			if ( Object.prototype.hasOwnProperty.call( data, key ) ) {
 				// Skip our special config keys and the graphManager itself
 				if ( [ 'model', 'type', 'sweptParam', 'xMin', 'xMax', 'xStep',
-					'yAxis', 'title', 'xLabel', 'yLabel', 'graphManager' ].indexOf( key ) === -1 ) {
+					'yAxis', 'series', 'title', 'xLabel', 'yLabel', 'graphManager' ].indexOf( key ) === -1 ) {
 					// Only include primitive values
 					const val = data[ key ];
 					if ( typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean' ) {
@@ -210,7 +230,8 @@
 			} )
 			.catch( function ( error ) {
 				console.error( 'RiskGraph error:', error );
-				self.showError( error.message || 'Failed to load graph data' );
+				console.error( 'Error details:', JSON.stringify( error ) );
+				self.showError( error.message || error.error || 'Failed to load graph data' );
 			} );
 	};
 
@@ -244,7 +265,7 @@
 						text: this.config.title
 					},
 					legend: {
-						display: true
+						display: data.datasets && data.datasets.length > 1
 					}
 				},
 				scales: {

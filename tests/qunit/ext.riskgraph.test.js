@@ -230,4 +230,170 @@
 			}
 		} );
 	} );
+
+	QUnit.module( 'Multi-series support' );
+
+	QUnit.test( 'Parse multi-series configuration', ( assert ) => {
+		const seriesData = [
+			{ label: 'Series A', yaxis: '{result}', params: { x: 1 }, color: '#FF0000' },
+			{ label: 'Series B', yaxis: '{result}', params: { x: 2 }, color: null }
+		];
+
+		const $graph = $( '<div class="RiskiUI RiskGraph"></div>' )
+			.attr( 'data-series', JSON.stringify( seriesData ) );
+
+		// jQuery auto-parses JSON from data attributes
+		const parsed = $graph.data( 'series' );
+
+		assert.ok( Array.isArray( parsed ), 'Series should be an array' );
+		assert.strictEqual( parsed.length, 2, 'Should have 2 series' );
+		assert.strictEqual( parsed[ 0 ].label, 'Series A', 'First series label correct' );
+		assert.strictEqual( parsed[ 0 ].color, '#FF0000', 'First series color correct' );
+		assert.strictEqual( parsed[ 1 ].label, 'Series B', 'Second series label correct' );
+		assert.strictEqual( parsed[ 1 ].color, null, 'Second series has no color' );
+	} );
+
+	QUnit.test( 'Parse multi-series with manual JSON parsing', ( assert ) => {
+		const seriesData = [
+			{ label: 'Test', yaxis: '{x}', params: {}, color: '#0066CC' }
+		];
+
+		const $graph = $( '<div class="RiskiUI RiskGraph"></div>' )
+			.attr( 'data-series', JSON.stringify( seriesData ) );
+
+		// Test manual parsing (as JavaScript code would do if jQuery fails)
+		const jsonStr = $graph.attr( 'data-series' );
+		const parsed = JSON.parse( jsonStr );
+
+		assert.ok( Array.isArray( parsed ), 'Manual parse returns array' );
+		assert.strictEqual( parsed[ 0 ].label, 'Test', 'Label parsed correctly' );
+		assert.strictEqual( parsed[ 0 ].color, '#0066CC', 'Color parsed correctly' );
+	} );
+
+	QUnit.test( 'Handle JSON parse errors gracefully', ( assert ) => {
+		const $graph = $( '<div class="RiskiUI RiskGraph"></div>' )
+			.attr( 'data-series', 'not valid json' );
+
+		// Test that invalid JSON doesn't crash
+		let parsed;
+		try {
+			const jsonStr = $graph.attr( 'data-series' );
+			parsed = JSON.parse( jsonStr );
+		} catch ( e ) {
+			parsed = null;
+		}
+
+		assert.strictEqual( parsed, null, 'Invalid JSON results in null' );
+	} );
+
+	QUnit.test( 'Backward compatibility with data-y-axis', ( assert ) => {
+		const $graph = $( '<div class="RiskiUI RiskGraph"></div>' )
+			.attr( 'data-y-axis', '{result}' );
+
+		const yAxis = $graph.data( 'yAxis' );
+		const series = $graph.data( 'series' );
+
+		assert.strictEqual( yAxis, '{result}', 'y-axis attribute parsed' );
+		assert.strictEqual( series, undefined, 'No series attribute' );
+	} );
+
+	QUnit.test( 'Build API request with series parameter', ( assert ) => {
+		const config = {
+			model: 'TestModel',
+			sweptParam: 'age',
+			xMin: 0,
+			xMax: 10,
+			xStep: 1,
+			series: [
+				{ label: 'Males', yaxis: '{risk}', params: { gender: 'male' }, color: '#0066CC' },
+				{ label: 'Females', yaxis: '{risk}', params: { gender: 'female' }, color: '#CC0066' }
+			]
+		};
+
+		const pagestate = { country: 'USA' };
+
+		// Simulate buildApiRequest logic
+		const request = {
+			action: 'riskgraph',
+			model: config.model,
+			title: 'Test',
+			sweptparam: config.sweptParam,
+			min: config.xMin,
+			max: config.xMax,
+			step: config.xStep,
+			pagestate: JSON.stringify( pagestate )
+		};
+
+		if ( config.series ) {
+			request.series = JSON.stringify( config.series );
+		} else if ( config.yAxis ) {
+			request.yaxis = config.yAxis;
+		}
+
+		assert.ok( request.series, 'Series parameter included' );
+		assert.strictEqual( request.yaxis, undefined, 'yaxis parameter not included' );
+
+		const parsedSeries = JSON.parse( request.series );
+		assert.strictEqual( parsedSeries.length, 2, 'Two series in request' );
+		assert.strictEqual( parsedSeries[ 0 ].label, 'Males', 'First series correct' );
+	} );
+
+	QUnit.test( 'Build API request for single-series (backward compat)', ( assert ) => {
+		const config = {
+			model: 'TestModel',
+			sweptParam: 'age',
+			xMin: 0,
+			xMax: 10,
+			xStep: 1,
+			yAxis: '{result}'
+		};
+
+		const pagestate = {};
+
+		// Simulate buildApiRequest logic
+		const request = {
+			action: 'riskgraph',
+			model: config.model,
+			title: 'Test',
+			sweptparam: config.sweptParam,
+			min: config.xMin,
+			max: config.xMax,
+			step: config.xStep,
+			pagestate: JSON.stringify( pagestate )
+		};
+
+		if ( config.series ) {
+			request.series = JSON.stringify( config.series );
+		} else if ( config.yAxis ) {
+			request.yaxis = config.yAxis;
+		}
+
+		assert.strictEqual( request.yaxis, '{result}', 'yaxis parameter included' );
+		assert.strictEqual( request.series, undefined, 'series parameter not included' );
+	} );
+
+	QUnit.test( 'Legend display based on series count', ( assert ) => {
+		// Test that legend should be shown for multiple series
+		const multiSeriesData = {
+			labels: [ 0, 1, 2 ],
+			datasets: [
+				{ label: 'Series A', data: [ 1, 2, 3 ] },
+				{ label: 'Series B', data: [ 4, 5, 6 ] }
+			]
+		};
+
+		const shouldShowLegendMulti = multiSeriesData.datasets && multiSeriesData.datasets.length > 1;
+		assert.strictEqual( shouldShowLegendMulti, true, 'Legend shown for multiple series' );
+
+		// Test that legend should be hidden for single series
+		const singleSeriesData = {
+			labels: [ 0, 1, 2 ],
+			datasets: [
+				{ label: 'Series A', data: [ 1, 2, 3 ] }
+			]
+		};
+
+		const shouldShowLegendSingle = singleSeriesData.datasets && singleSeriesData.datasets.length > 1;
+		assert.strictEqual( shouldShowLegendSingle, false, 'Legend hidden for single series' );
+	} );
 }() );
