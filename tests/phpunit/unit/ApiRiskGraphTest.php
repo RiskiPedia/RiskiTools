@@ -112,4 +112,166 @@ class ApiRiskGraphTest extends MediaWikiUnitTestCase {
 			'Test'
 		);
 	}
+
+	/**
+	 * Test series parameter JSON parsing
+	 */
+	public function testSeriesParameterParsing() {
+		$seriesJson = json_encode( [
+			[ 'label' => 'Series A', 'yaxis' => '{result}', 'params' => [], 'color' => '#FF0000' ],
+			[ 'label' => 'Series B', 'yaxis' => '{result}', 'params' => [], 'color' => null ]
+		] );
+
+		$series = ApiRiskGraph::parseSeriesParameter( $seriesJson );
+
+		$this->assertIsArray( $series );
+		$this->assertCount( 2, $series );
+		$this->assertEquals( 'Series A', $series[0]['label'] );
+		$this->assertEquals( '#FF0000', $series[0]['color'] );
+	}
+
+	/**
+	 * Test series parameter with invalid JSON
+	 */
+	public function testSeriesParameterInvalidJson() {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Series must be valid JSON' );
+
+		ApiRiskGraph::parseSeriesParameter( 'not valid json' );
+	}
+
+	/**
+	 * Test series parameter with non-array JSON
+	 */
+	public function testSeriesParameterNotArray() {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Series must be an array' );
+
+		ApiRiskGraph::parseSeriesParameter( json_encode( 'string' ) );
+	}
+
+	/**
+	 * Test series parameter with empty array
+	 */
+	public function testSeriesParameterEmptyArray() {
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Series array cannot be empty' );
+
+		ApiRiskGraph::parseSeriesParameter( json_encode( [] ) );
+	}
+
+	/**
+	 * Test series validation - missing required field (label)
+	 */
+	public function testSeriesValidationMissingLabel() {
+		$series = [
+			[ 'yaxis' => '{result}', 'params' => [], 'color' => null ]
+		];
+
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Series 0: missing required field "label"' );
+
+		ApiRiskGraph::validateSeriesDefinitions( $series );
+	}
+
+	/**
+	 * Test series validation - missing required field (yaxis)
+	 */
+	public function testSeriesValidationMissingYaxis() {
+		$series = [
+			[ 'label' => 'Test', 'params' => [], 'color' => null ]
+		];
+
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Series 0: missing required field "yaxis"' );
+
+		ApiRiskGraph::validateSeriesDefinitions( $series );
+	}
+
+	/**
+	 * Test series validation - too many series
+	 */
+	public function testSeriesValidationMaxLimit() {
+		// Create 11 series (exceeds limit of 10)
+		$series = [];
+		for ( $i = 0; $i < 11; $i++ ) {
+			$series[] = [ 'label' => "Series $i", 'yaxis' => '{result}', 'params' => [], 'color' => null ];
+		}
+
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Maximum 10 series allowed' );
+
+		ApiRiskGraph::validateSeriesDefinitions( $series );
+	}
+
+	/**
+	 * Test series validation - valid series pass
+	 */
+	public function testSeriesValidationValid() {
+		$series = [
+			[ 'label' => 'Series A', 'yaxis' => '{result}', 'params' => [ 'x' => 1 ], 'color' => '#FF0000' ],
+			[ 'label' => 'Series B', 'yaxis' => '{result}', 'params' => [], 'color' => null ]
+		];
+
+		// Should not throw exception
+		$result = ApiRiskGraph::validateSeriesDefinitions( $series );
+		$this->assertTrue( $result );
+	}
+
+	/**
+	 * Test formatting multi-series data for Chart.js
+	 */
+	public function testFormatMultiSeriesData() {
+		$labels = [ 0, 1, 2, 3 ];
+		$seriesData = [
+			[
+				'label' => 'Series A',
+				'data' => [ 10, 20, 30, 40 ],
+				'color' => '#FF0000'
+			],
+			[
+				'label' => 'Series B',
+				'data' => [ 15, 25, 35, 45 ],
+				'color' => null
+			]
+		];
+
+		$result = ApiRiskGraph::formatMultiSeriesData( $labels, $seriesData );
+
+		$this->assertArrayHasKey( 'labels', $result );
+		$this->assertArrayHasKey( 'datasets', $result );
+		$this->assertSame( $labels, $result['labels'] );
+		$this->assertCount( 2, $result['datasets'] );
+
+		// Check first series
+		$this->assertSame( 'Series A', $result['datasets'][0]['label'] );
+		$this->assertSame( [ 10, 20, 30, 40 ], $result['datasets'][0]['data'] );
+		$this->assertSame( '#FF0000', $result['datasets'][0]['borderColor'] );
+		$this->assertSame( '#FF0000', $result['datasets'][0]['backgroundColor'] );
+
+		// Check second series (no color)
+		$this->assertSame( 'Series B', $result['datasets'][1]['label'] );
+		$this->assertSame( [ 15, 25, 35, 45 ], $result['datasets'][1]['data'] );
+		$this->assertArrayNotHasKey( 'borderColor', $result['datasets'][1] );
+		$this->assertArrayNotHasKey( 'backgroundColor', $result['datasets'][1] );
+	}
+
+	/**
+	 * Test multi-series data with mismatched lengths
+	 */
+	public function testFormatMultiSeriesDataMismatchedLengths() {
+		$labels = [ 0, 1, 2 ];
+		$seriesData = [
+			[
+				'label' => 'Series A',
+				'data' => [ 10, 20 ],  // Wrong length!
+				'color' => null
+			]
+		];
+
+		$this->expectException( \InvalidArgumentException::class );
+		$this->expectExceptionMessage( 'Series "Series A": data length (2) must match labels length (3)' );
+
+		ApiRiskGraph::formatMultiSeriesData( $labels, $seriesData );
+	}
 }

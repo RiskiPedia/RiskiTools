@@ -96,6 +96,107 @@ class ApiRiskGraph extends ApiBase {
 	}
 
 	/**
+	 * Format multi-series graph data in Chart.js compatible format
+	 *
+	 * @param array $labels X-axis labels (parameter values)
+	 * @param array $seriesData Array of series with label, data, and optional color
+	 * @return array Formatted data structure for Chart.js
+	 * @throws InvalidArgumentException If data lengths don't match
+	 */
+	public static function formatMultiSeriesData( array $labels, array $seriesData ) {
+		$datasets = [];
+
+		foreach ( $seriesData as $series ) {
+			$seriesLabel = $series['label'];
+			$data = $series['data'];
+			$color = $series['color'];
+
+			// Validate data length matches labels
+			if ( count( $data ) !== count( $labels ) ) {
+				throw new InvalidArgumentException(
+					sprintf(
+						'Series "%s": data length (%d) must match labels length (%d)',
+						$seriesLabel,
+						count( $data ),
+						count( $labels )
+					)
+				);
+			}
+
+			// Build dataset
+			$dataset = [
+				'label' => $seriesLabel,
+				'data' => $data
+			];
+
+			// Add color if specified
+			if ( $color !== null ) {
+				$dataset['borderColor'] = $color;
+				$dataset['backgroundColor'] = $color;
+			}
+
+			$datasets[] = $dataset;
+		}
+
+		return [
+			'labels' => $labels,
+			'datasets' => $datasets
+		];
+	}
+
+	/**
+	 * Parse and validate series parameter from JSON string
+	 *
+	 * @param string $seriesJson JSON string containing series definitions
+	 * @return array Parsed series array
+	 * @throws InvalidArgumentException If JSON is invalid or malformed
+	 */
+	public static function parseSeriesParameter( $seriesJson ) {
+		$series = json_decode( $seriesJson, true );
+
+		if ( $series === null ) {
+			throw new InvalidArgumentException( 'Series must be valid JSON' );
+		}
+
+		if ( !is_array( $series ) ) {
+			throw new InvalidArgumentException( 'Series must be an array' );
+		}
+
+		if ( empty( $series ) ) {
+			throw new InvalidArgumentException( 'Series array cannot be empty' );
+		}
+
+		return $series;
+	}
+
+	/**
+	 * Validate series definitions array
+	 *
+	 * @param array $series Array of series definitions
+	 * @return bool True if validation passes
+	 * @throws InvalidArgumentException If validation fails
+	 */
+	public static function validateSeriesDefinitions( array $series ) {
+		// Check max limit
+		if ( count( $series ) > 10 ) {
+			throw new InvalidArgumentException( 'Maximum 10 series allowed, got ' . count( $series ) );
+		}
+
+		// Validate each series has required fields
+		foreach ( $series as $idx => $seriesDef ) {
+			if ( !isset( $seriesDef['label'] ) ) {
+				throw new InvalidArgumentException( "Series $idx: missing required field \"label\"" );
+			}
+
+			if ( !isset( $seriesDef['yaxis'] ) ) {
+				throw new InvalidArgumentException( "Series $idx: missing required field \"yaxis\"" );
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Execute the API request
 	 */
 	public function execute() {
@@ -107,15 +208,33 @@ class ApiRiskGraph extends ApiBase {
 		$min = floatval( $params['min'] );
 		$max = floatval( $params['max'] );
 		$step = floatval( $params['step'] );
-		$yaxis = $params['yaxis'];
+		$seriesParam = $params['series'] ?? null;
+		$yaxis = $params['yaxis'] ?? null;
 		$pagestate = $params['pagestate'] ? json_decode( $params['pagestate'], true ) : [];
 
 		try {
+			// Determine mode: multi-series or single-series
+			if ( $seriesParam ) {
+				// Multi-series mode
+				$seriesDefinitions = self::parseSeriesParameter( $seriesParam );
+				self::validateSeriesDefinitions( $seriesDefinitions );
+			} else {
+				// Single-series mode (backward compatibility)
+				if ( !$yaxis ) {
+					$this->dieWithError( 'Either yaxis or series parameter is required', 'missing-yaxis' );
+				}
+				$seriesDefinitions = [[
+					'label' => trim( $yaxis, '{}' ),
+					'yaxis' => $yaxis,
+					'params' => [],
+					'color' => null
+				]];
+			}
+
 			// Generate parameter sweep
 			$xValues = self::generateParameterSweep( $min, $max, $step );
 
 			// Fetch the model
-			// Use the page title from the request if available, otherwise use empty string
 			$pageTitle = $params['title'] ?? '';
 			$title = Title::newFromText( $pageTitle );
 			if ( !$title ) {
@@ -130,28 +249,57 @@ class ApiRiskGraph extends ApiBase {
 			// Get model parameters
 			$dbParams = \RiskiToolsHooks::fetchRiskModelParams( $model['rm_id'], $model );
 
-			// Evaluate model at each point
-			$yValues = [];
-			foreach ( $xValues as $xValue ) {
-				// Build parameter set for this point (pagestate + swept param)
-				$currentPagestate = array_merge( $pagestate, [ $sweptParam => $xValue ] );
+			// Generate data for each series
+			$seriesData = [];
+			$startTime = microtime( true );
+			$maxExecutionTime = 5; // 5 seconds timeout
 
-				// Resolve all parameters using the same logic as RiskiTools
-				$resolvedParams = self::resolveParameters( $model['rm_text'], $dbParams, $currentPagestate, $title );
+			foreach ( $seriesDefinitions as $series ) {
+				$yValues = [];
 
-				// Extract the y-axis value (strip {})
-				$yaxisVar = trim( $yaxis, '{}' );
-				$yValue = $resolvedParams[$yaxisVar] ?? null;
-				if ( $yValue === null ) {
-					$this->dieWithError( "Variable $yaxisVar not found in model output", 'missing-variable' );
+				// Merge: pagestate + series-specific fixed params
+				$seriesPagestate = empty( $series['params'] )
+					? $pagestate
+					: array_merge( $pagestate, $series['params'] );
+
+				foreach ( $xValues as $xValue ) {
+					// Check timeout
+					if ( microtime( true ) - $startTime > $maxExecutionTime ) {
+						$this->dieWithError( 'Graph generation timeout', 'timeout' );
+					}
+
+					// For this series: pagestate + series params + swept param
+					$currentPagestate = array_merge(
+						$seriesPagestate,
+						[ $sweptParam => $xValue ]
+					);
+
+					// Resolve all parameters
+					$resolvedParams = self::resolveParameters( $model['rm_text'], $dbParams, $currentPagestate, $title );
+
+					// Extract the y-axis value (strip {})
+					$yaxisVar = trim( $series['yaxis'], '{}' );
+					$yValue = $resolvedParams[$yaxisVar] ?? null;
+					if ( $yValue === null ) {
+						$this->dieWithError(
+							"Variable $yaxisVar not found in series '{$series['label']}' at x=$xValue",
+							'missing-variable'
+						);
+					}
+
+					// Convert to number
+					$yValues[] = floatval( strip_tags( $yValue ) );
 				}
 
-				// Convert to number
-				$yValues[] = floatval( strip_tags( $yValue ) );
+				$seriesData[] = [
+					'label' => $series['label'],
+					'data' => $yValues,
+					'color' => $series['color']
+				];
 			}
 
 			// Format data for Chart.js
-			$chartData = self::formatGraphData( $xValues, $yValues, trim( $yaxis, '{}' ) );
+			$chartData = self::formatMultiSeriesData( $xValues, $seriesData );
 
 			// Return result
 			$this->getResult()->addValue( null, 'riskgraph', $chartData );
@@ -238,7 +386,11 @@ class ApiRiskGraph extends ApiBase {
 			],
 			'yaxis' => [
 				ApiBase::PARAM_TYPE => 'string',
-				ApiBase::PARAM_REQUIRED => true,
+				ApiBase::PARAM_REQUIRED => false,  // Optional if series provided
+			],
+			'series' => [
+				ApiBase::PARAM_TYPE => 'string',
+				ApiBase::PARAM_REQUIRED => false,  // JSON string
 			],
 		];
 	}
