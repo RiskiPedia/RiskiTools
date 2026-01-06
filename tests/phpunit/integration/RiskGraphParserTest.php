@@ -281,6 +281,214 @@ WIKITEXT;
 	}
 
 	/**
+	 * Test parsing multiple series lines
+	 */
+	public function testMultiSeriesParsing() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+series: Males|{risk}|gender=male
+series: Females|{risk}|gender=female
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Debug: print the actual output
+		// echo "\n=== RAW OUTPUT ===\n$output\n=== END OUTPUT ===\n";
+
+		// Should contain data-series attribute with JSON
+		$this->assertStringContainsString( 'data-series=', $output, 'Should have data-series attribute' );
+
+		// Should NOT contain data-y-axis (only for single-series)
+		$this->assertStringNotContainsString( 'data-y-axis=', $output, 'Should not have data-y-axis for multi-series' );
+
+		// Extract and verify the JSON structure (MediaWiki double-encodes: &amp;quot;)
+		preg_match( '/data-series="([^"]*)"/', $output, $matches );
+		$this->assertNotEmpty( $matches, 'Should find data-series attribute' );
+
+		// Decode twice due to MediaWiki double-encoding
+		$seriesJson = html_entity_decode( html_entity_decode( $matches[1], ENT_QUOTES ), ENT_QUOTES );
+		$series = json_decode( $seriesJson, true );
+
+		$this->assertIsArray( $series, 'Series data should be valid JSON array' );
+		$this->assertCount( 2, $series, 'Should have 2 series' );
+
+		// Verify first series
+		$this->assertEquals( 'Males', $series[0]['label'] );
+		$this->assertEquals( '{risk}', $series[0]['yaxis'] );
+		$this->assertEquals( 'male', $series[0]['params']['gender'] );
+		$this->assertNull( $series[0]['color'] );
+
+		// Verify second series
+		$this->assertEquals( 'Females', $series[1]['label'] );
+		$this->assertEquals( '{risk}', $series[1]['yaxis'] );
+		$this->assertEquals( 'female', $series[1]['params']['gender'] );
+		$this->assertNull( $series[1]['color'] );
+	}
+
+	/**
+	 * Test parsing series with color
+	 */
+	public function testSeriesParsingWithColor() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+series: Series A|{risk}|color=#FF0000
+series: Series B|{risk}|color=#0000FF
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Extract series JSON (MediaWiki double-encodes)
+		preg_match( '/data-series="([^"]*)"/', $output, $matches );
+		$seriesJson = html_entity_decode( html_entity_decode( $matches[1], ENT_QUOTES ), ENT_QUOTES );
+		$series = json_decode( $seriesJson, true );
+
+		// Verify colors are parsed correctly
+		$this->assertEquals( '#FF0000', $series[0]['color'], 'First series should have red color' );
+		$this->assertEquals( '#0000FF', $series[1]['color'], 'Second series should have blue color' );
+	}
+
+	/**
+	 * Test parsing series with multiple parameters
+	 */
+	public function testSeriesParsingWithParams() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+series: Test|{risk}|gender=male|age_multiplier=0.9|color=#FF0000
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Extract series JSON (MediaWiki double-encodes)
+		preg_match( '/data-series="([^"]*)"/', $output, $matches );
+		$seriesJson = html_entity_decode( html_entity_decode( $matches[1], ENT_QUOTES ), ENT_QUOTES );
+		$series = json_decode( $seriesJson, true );
+
+		// Verify parameters are parsed correctly
+		$this->assertEquals( 'male', $series[0]['params']['gender'] );
+		$this->assertEquals( '0.9', $series[0]['params']['age_multiplier'] );
+		$this->assertEquals( '#FF0000', $series[0]['color'] );
+	}
+
+	/**
+	 * Test malformed series line (missing yaxis)
+	 */
+	public function testMalformedSeriesLine() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+series: OnlyLabel
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should contain an error message
+		$this->assertStringContainsString( 'error', strtolower( $output ), 'Should show error for malformed series' );
+	}
+
+	/**
+	 * Test invalid color format
+	 */
+	public function testInvalidColorFormat() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+series: Test|{risk}|color=red
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should contain an error about invalid color format
+		$this->assertStringContainsString( 'error', strtolower( $output ), 'Should show error for invalid color format' );
+		$this->assertStringContainsString( 'color', strtolower( $output ), 'Error should mention color' );
+	}
+
+	/**
+	 * Test error when neither series nor y-axis specified
+	 */
+	public function testMissingSeriesAndYAxis() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should contain an error about missing y-axis or series
+		$this->assertStringContainsString( 'error', strtolower( $output ), 'Should show error when neither y-axis nor series specified' );
+	}
+
+	/**
+	 * Test error when series params try to override swept parameter
+	 */
+	public function testSweptParameterInSeriesParams() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+series: Test|{risk}|age=30
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should contain an error about overriding swept parameter
+		$this->assertStringContainsString( 'error', strtolower( $output ), 'Should show error when series params override swept parameter' );
+	}
+
+	/**
+	 * Test backward compatibility with single-series y-axis format
+	 */
+	public function testBackwardCompatibilitySingleSeries() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: age
+x-min: 0
+x-max: 10
+x-step: 1
+y-axis: {result}
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should work without error
+		$this->assertStringNotContainsString( 'class="error"', $output, 'Old y-axis format should still work' );
+
+		// Should have data-y-axis attribute (not data-series)
+		$this->assertStringContainsString( 'data-y-axis=', $output, 'Should have data-y-axis for single-series' );
+		$this->assertStringNotContainsString( 'data-series=', $output, 'Should not have data-series for single-series' );
+	}
+
+	/**
 	 * Helper to parse wikitext and return HTML
 	 */
 	private function parseWikitext( $wikitext ) {

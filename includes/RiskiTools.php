@@ -949,9 +949,21 @@ class RiskiToolsHooks {
             'data-swept-param' => $config['x-axis'],
             'data-x-min' => (string)$config['x-min'],
             'data-x-max' => (string)$config['x-max'],
-            'data-x-step' => (string)$config['x-step'],
-            'data-y-axis' => $config['y-axis']
+            'data-x-step' => (string)$config['x-step']
         ];
+
+        // Multi-series or single-series mode
+        if (!empty($config['series'])) {
+            // Multi-series: store series as JSON
+            $jsonSeries = json_encode($config['series']);
+            if ($jsonSeries === false) {
+                return self::formatError('riskgraph: failed to encode series data');
+            }
+            $attributes['data-series'] = htmlspecialchars($jsonSeries, ENT_QUOTES);
+        } else {
+            // Single-series: use y-axis (backward compatibility)
+            $attributes['data-y-axis'] = $config['y-axis'];
+        }
 
         // Add optional labels if provided
         if (isset($config['title'])) {
@@ -982,6 +994,7 @@ class RiskiToolsHooks {
      */
     private static function parseRiskGraphContent($content) {
         $config = [];
+        $config['series'] = []; // Array for multi-series
         $lines = explode("\n", trim($content));
 
         foreach ($lines as $line) {
@@ -998,11 +1011,49 @@ class RiskiToolsHooks {
             $key = trim($parts[0]);
             $value = trim($parts[1]);
 
-            $config[$key] = $value;
+            // Handle series lines specially (can have multiple)
+            if ($key === 'series') {
+                // Parse: Label|yaxis|param=value|color=#hex
+                $seriesParts = array_map('trim', explode('|', $value));
+
+                // Validate minimum required parts (label and yaxis)
+                if (count($seriesParts) < 2) {
+                    return ['error' => 'series line must have format: Label|{yaxis}|param=value|color=#hex'];
+                }
+
+                $series = [
+                    'label' => $seriesParts[0],
+                    'yaxis' => $seriesParts[1],
+                    'params' => [],
+                    'color' => null
+                ];
+
+                // Parse remaining parts for params and color
+                for ($i = 2; $i < count($seriesParts); $i++) {
+                    $part = trim($seriesParts[$i]);
+
+                    if (strpos($part, 'color=') === 0) {
+                        $color = substr($part, 6);
+                        // Validate hex color format
+                        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+                            return ['error' => "invalid color format: $color (use #RRGGBB)"];
+                        }
+                        $series['color'] = $color;
+                    } elseif (strpos($part, '=') !== false) {
+                        // Parse single param=value
+                        list($paramKey, $paramValue) = explode('=', $part, 2);
+                        $series['params'][trim($paramKey)] = trim($paramValue);
+                    }
+                }
+
+                $config['series'][] = $series;
+            } else {
+                $config[$key] = $value;
+            }
         }
 
-        // Validate required configuration
-        $required = ['x-axis', 'x-min', 'x-max', 'x-step', 'y-axis'];
+        // Validate required configuration (x-axis params are always required)
+        $required = ['x-axis', 'x-min', 'x-max', 'x-step'];
         foreach ($required as $req) {
             if (!isset($config[$req])) {
                 return ['error' => "missing required configuration: $req"];
@@ -1016,6 +1067,21 @@ class RiskiToolsHooks {
                 return ['error' => "$key must be a numeric value, got: " . $config[$key]];
             }
             $config[$key] = (float)$config[$key];
+        }
+
+        // Validate: must have either y-axis or series (but not required to have both)
+        if (empty($config['y-axis']) && empty($config['series'])) {
+            return ['error' => "must specify either 'y-axis' or 'series'"];
+        }
+
+        // Validate: series params cannot override swept parameter
+        if (!empty($config['series'])) {
+            $sweptParam = $config['x-axis'];
+            foreach ($config['series'] as $idx => $series) {
+                if (isset($series['params'][$sweptParam])) {
+                    return ['error' => "series $idx: cannot override swept parameter '$sweptParam'"];
+                }
+            }
         }
 
         return $config;
