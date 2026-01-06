@@ -64,6 +64,25 @@
             "styles": [
                 "extensions/RiskiTools/includes/ext.methodology.css"
             ]
+        },
+        "ext.riskgraph.chartjs": {
+            "scripts": [
+                "extensions/RiskiTools/includes/lib/chart.umd.min.js"
+            ],
+            "targets": [ "desktop", "mobile" ]
+        },
+        "ext.riskgraph": {
+            "scripts": [
+                "extensions/RiskiTools/includes/ext.riskgraph.js"
+            ],
+            "styles": [
+                "extensions/RiskiTools/includes/ext.riskgraph.css"
+            ],
+            "dependencies": [
+                "ext.riskgraph.chartjs",
+                "ext.pagestate",
+                "mediawiki.api"
+            ]
         }
     },
     "Hooks": {
@@ -77,11 +96,23 @@
     "AutoloadClasses": {
         "RiskiToolsHooks": "includes/RiskiTools.php",
         "ApiUpdateRiskiData": "includes/api/ApiUpdateRiskiData.php",
-        "ApiRiskParse": "includes/api/ApiRiskParse.php"
+        "ApiRiskParse": "includes/api/ApiRiskParse.php",
+        "ApiRiskGraph": "includes/api/ApiRiskGraph.php"
     },
     "APIModules": {
         "updateriskidata": "ApiUpdateRiskiData",
-        "riskparse": "ApiRiskParse"
+        "riskparse": "ApiRiskParse",
+        "riskgraph": "ApiRiskGraph"
+    },
+    "QUnitTestModule": {
+        "localBasePath": "tests/qunit",
+        "remoteExtPath": "RiskiTools/tests/qunit",
+        "scripts": [
+            "ext.riskgraph.test.js"
+        ],
+        "dependencies": [
+            "ext.riskgraph"
+        ]
     },
     "manifest_version": 2
 }

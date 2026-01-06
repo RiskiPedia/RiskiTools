@@ -19,6 +19,7 @@ class RiskiToolsHooks {
         $parser->setHook('riskparameter', [self::class, 'renderRiskParameter']);
         $parser->setHook('riskdatalookup', [self::class, 'renderRiskDataLookup']);
         $parser->setHook('methodology', [self::class, 'renderMethodology']);
+        $parser->setHook('riskgraph', [self::class, 'renderRiskGraph']);
         return true;
     }
 
@@ -196,7 +197,7 @@ class RiskiToolsHooks {
      * @return array An array with ['sorted' => [...], 'error' => null] on success,
      * or ['sorted' => null, 'error' => '...'] on failure.
      */
-    private static function topologicalSortParameters(array $parameters) {
+    public static function topologicalSortParameters(array $parameters) {
         $adjList = [];    // $adjList[$node] = [list of nodes that depend on $node]
         $inDegree = [];   // $inDegree[$node] = count of dependencies for $node
         $paramNames = array_keys($parameters);
@@ -545,6 +546,13 @@ class RiskiToolsHooks {
             $text = str_replace($lookup['placeholder'], $rendered, $text);
         }
 
+        // Process deferred riskgraph tags
+        $deferredGraphs = $parserOutput->getExtensionData('riskitools_deferred_graphs') ?: [];
+        foreach ($deferredGraphs as $graph) {
+            $rendered = self::renderRiskGraphDeferred($graph, $parser);
+            $text = str_replace($graph['placeholder'], $rendered, $text);
+        }
+
         return true;
     }
 
@@ -681,7 +689,7 @@ class RiskiToolsHooks {
      * @param array|null $modelData Optional model data from ParserOutput (for in-memory models).
      * @return array Associative array of [param_name => expression]
      */
-    private static function fetchRiskModelParams($modelId, $modelData = null) {
+    public static function fetchRiskModelParams($modelId, $modelData = null) {
         // If modelData contains params (from in-memory model), return directly
         if ($modelData !== null && isset($modelData['rm_params'])) {
             return $modelData['rm_params'];
@@ -767,6 +775,34 @@ class RiskiToolsHooks {
         $output = self::generateDivOrSpan('span', 'RiskiUI RiskParameter', $content, $attributes, ['hidden' => '']);
 
         return $output;
+    }
+
+    /**
+     * Renders a <riskgraph>
+     *
+     * @param string $content Inner content of the tag
+     * @param array $attribs Tag attributes
+     * @param Parser $parser The MediaWiki parser instance.
+     * @param PPFrame $frame The preprocessor frame.
+     * @return string Output wikitext.
+     */
+    public static function renderRiskGraph($content, array $attribs, Parser $parser, PPFrame $frame) {
+        $parserOutput = $parser->getOutput();
+        $parserOutput->addModules(['ext.riskgraph']);
+
+        // Defer rendering until after all risk model tags are processed
+        $deferred = $parserOutput->getExtensionData('riskitools_deferred_graphs') ?: [];
+        $placeholder = "<!--RISKGRAPH-" . count($deferred) . "-->";
+
+        $deferred[] = [
+            'content' => $content,
+            'attribs' => $attribs,
+            'placeholder' => $placeholder
+        ];
+
+        $parserOutput->setExtensionData('riskitools_deferred_graphs', $deferred);
+
+        return $placeholder;
     }
 
     /**
@@ -867,6 +903,122 @@ class RiskiToolsHooks {
         $output = self::generateDivOrSpan("div", "RiskiUI RiskDisplay", $placeholderHTML, $attributes);
 
         return $output;
+    }
+
+    /**
+     * Renders a deferred RiskGraph tag after parsing is complete.
+     * @param array $graph Deferred graph data
+     * @param Parser $parser The MediaWiki parser instance
+     * @return string Rendered HTML
+     */
+    private static function renderRiskGraphDeferred($graph, Parser $parser) {
+        $content = $graph['content'];
+        $options = self::processTagAttributes($graph['attribs']);
+
+        // Validate required 'model' attribute
+        if (!isset($options['model'])) {
+            return self::formatError('riskgraph: model attribute is required');
+        }
+
+        // Parse the content to extract configuration
+        $config = self::parseRiskGraphContent($content);
+
+        if (isset($config['error'])) {
+            return self::formatError('riskgraph: ' . $config['error']);
+        }
+
+        // Default type to 'line' if not specified
+        $type = $options['type'] ?? 'line';
+
+        // Extract custom data- attributes for fixed parameters
+        $fixedParams = [];
+        foreach ($options as $key => $value) {
+            if (strpos($key, 'data-') === 0) {
+                $fixedParams[substr($key, 5)] = $value;
+            }
+        }
+
+        // Generate unique ID for this graph
+        $graphId = 'riskgraph-' . bin2hex(random_bytes(8));
+
+        // Build attributes for the graph container
+        $attributes = [
+            'id' => $graphId,
+            'data-model' => $options['model'],
+            'data-type' => $type,
+            'data-swept-param' => $config['x-axis'],
+            'data-x-min' => (string)$config['x-min'],
+            'data-x-max' => (string)$config['x-max'],
+            'data-x-step' => (string)$config['x-step'],
+            'data-y-axis' => $config['y-axis']
+        ];
+
+        // Add optional labels if provided
+        if (isset($config['title'])) {
+            $attributes['data-title'] = $config['title'];
+        }
+        if (isset($config['x-label'])) {
+            $attributes['data-x-label'] = $config['x-label'];
+        }
+        if (isset($config['y-label'])) {
+            $attributes['data-y-label'] = $config['y-label'];
+        }
+
+        // Add fixed parameter data attributes
+        foreach ($fixedParams as $key => $value) {
+            $attributes['data-' . $key] = $value;
+        }
+
+        // Generate output div
+        $output = self::generateDivOrSpan('div', 'RiskiUI RiskGraph', 'Loading graph...', $attributes);
+
+        return $output;
+    }
+
+    /**
+     * Parse the content of a <riskgraph> tag to extract configuration
+     * @param string $content Tag content
+     * @return array Configuration array or error
+     */
+    private static function parseRiskGraphContent($content) {
+        $config = [];
+        $lines = explode("\n", trim($content));
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+
+            $parts = explode(':', $line, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+
+            $key = trim($parts[0]);
+            $value = trim($parts[1]);
+
+            $config[$key] = $value;
+        }
+
+        // Validate required configuration
+        $required = ['x-axis', 'x-min', 'x-max', 'x-step', 'y-axis'];
+        foreach ($required as $req) {
+            if (!isset($config[$req])) {
+                return ['error' => "missing required configuration: $req"];
+            }
+        }
+
+        // Validate numeric values
+        $numerics = ['x-min', 'x-max', 'x-step'];
+        foreach ($numerics as $key) {
+            if (!is_numeric($config[$key])) {
+                return ['error' => "$key must be a numeric value, got: " . $config[$key]];
+            }
+            $config[$key] = (float)$config[$key];
+        }
+
+        return $config;
     }
 
     /**

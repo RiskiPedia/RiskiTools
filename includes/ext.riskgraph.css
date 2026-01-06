@@ -1,0 +1,27 @@
+/* RiskGraph styling */
+
+.RiskiUI.RiskGraph {
+	margin: 1em 0;
+	padding: 1em;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #fff;
+	min-height: 300px;
+	position: relative;
+}
+
+.RiskiUI.RiskGraph canvas {
+	max-width: 100%;
+	height: auto;
+}
+
+.RiskiUI.RiskGraph p {
+	text-align: center;
+	padding: 2em;
+	color: #666;
+}
+
+.RiskiUI.RiskGraph p.error {
+	color: #c00;
+	font-weight: bold;
+}
