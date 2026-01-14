@@ -7,11 +7,28 @@
     background-color: #f8f9fa;
 }
 
+/* When collapsed, remove section background/border - only show the toggle */
+.methodology-section.mw-collapsed {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 1.5em;
+}
+
 .methodology-section .mw-collapsible-toggle {
     cursor: pointer;
     font-weight: bold;
     padding: 0.5em;
     user-select: none;
+    border-radius: 2px;
+    float: none !important;  /* Override MediaWiki default right float */
+    clear: both;
+}
+
+/* Semi-transparent gray background when collapsed */
+.methodology-section.mw-collapsed .mw-collapsible-toggle {
+    background-color: rgba(200, 204, 209, 0.4);
+    display: inline-block;
 }
 
 .methodology-section .mw-collapsible-toggle:hover {
