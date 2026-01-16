@@ -108,6 +108,12 @@
 			}
 		}
 
+		// Parse optional y-axis range values
+		const yMinRaw = this.$el.data( 'yMin' );
+		const yMaxRaw = this.$el.data( 'yMax' );
+		const yMin = ( yMinRaw !== undefined && yMinRaw !== '' ) ? parseFloat( yMinRaw ) : null;
+		const yMax = ( yMaxRaw !== undefined && yMaxRaw !== '' ) ? parseFloat( yMaxRaw ) : null;
+
 		return {
 			model: this.$el.data( 'model' ),
 			type: this.$el.data( 'type' ) || 'line',
@@ -119,7 +125,9 @@
 			series: series,
 			title: this.$el.data( 'title' ),
 			xLabel: this.$el.data( 'xLabel' ),
-			yLabel: this.$el.data( 'yLabel' )
+			yLabel: this.$el.data( 'yLabel' ),
+			yMin: yMin,
+			yMax: yMax
 		};
 	};
 
@@ -134,7 +142,7 @@
 			if ( Object.prototype.hasOwnProperty.call( data, key ) ) {
 				// Skip our special config keys and the graphManager itself
 				if ( [ 'model', 'type', 'sweptParam', 'xMin', 'xMax', 'xStep',
-					'yAxis', 'series', 'title', 'xLabel', 'yLabel', 'graphManager' ].indexOf( key ) === -1 ) {
+					'yAxis', 'series', 'title', 'xLabel', 'yLabel', 'yMin', 'yMax', 'graphManager' ].indexOf( key ) === -1 ) {
 					// Only include primitive values
 					const val = data[ key ];
 					if ( typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean' ) {
@@ -281,7 +289,9 @@
 						title: {
 							display: !!this.config.yLabel,
 							text: this.config.yLabel
-						}
+						},
+						min: this.config.yMin,
+						max: this.config.yMax
 					}
 				}
 			}

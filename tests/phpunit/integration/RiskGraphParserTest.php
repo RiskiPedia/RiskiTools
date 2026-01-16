@@ -465,6 +465,97 @@ WIKITEXT;
 	}
 
 	/**
+	 * Test that y-min and y-max axis range values are parsed
+	 */
+	public function testYAxisRangeConfiguration() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: param
+x-min: 0
+x-max: 10
+x-step: 1
+y-axis: {result}
+y-min: 0
+y-max: 100
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should contain data attributes for y-axis range
+		$this->assertStringContainsString( 'data-y-min="0"', $output, 'Should have y-min data attribute' );
+		$this->assertStringContainsString( 'data-y-max="100"', $output, 'Should have y-max data attribute' );
+	}
+
+	/**
+	 * Test that y-min and y-max are optional
+	 */
+	public function testYAxisRangeOptional() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: param
+x-min: 0
+x-max: 10
+x-step: 1
+y-axis: {result}
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should work without error
+		$this->assertStringNotContainsString( 'class="error"', $output, 'Should work without y-min/y-max' );
+
+		// Should NOT have y-min/y-max attributes when not specified
+		$this->assertStringNotContainsString( 'data-y-min=', $output, 'Should not have y-min if not specified' );
+		$this->assertStringNotContainsString( 'data-y-max=', $output, 'Should not have y-max if not specified' );
+	}
+
+	/**
+	 * Test that only y-min can be specified without y-max
+	 */
+	public function testYMinOnlyConfiguration() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: param
+x-min: 0
+x-max: 10
+x-step: 1
+y-axis: {result}
+y-min: 0
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should work without error
+		$this->assertStringNotContainsString( 'class="error"', $output, 'Should work with only y-min' );
+		$this->assertStringContainsString( 'data-y-min="0"', $output, 'Should have y-min data attribute' );
+		$this->assertStringNotContainsString( 'data-y-max=', $output, 'Should not have y-max if not specified' );
+	}
+
+	/**
+	 * Test that invalid y-min/y-max values are caught
+	 */
+	public function testInvalidYAxisRangeValues() {
+		$wikitext = <<<WIKITEXT
+<riskgraph model="TestModel">
+x-axis: param
+x-min: 0
+x-max: 10
+x-step: 1
+y-axis: {result}
+y-min: not-a-number
+</riskgraph>
+WIKITEXT;
+
+		$output = $this->parseWikitext( $wikitext );
+
+		// Should error about invalid numeric value
+		$this->assertStringContainsString( 'error', $output, 'Should show error for invalid y-min value' );
+	}
+
+	/**
 	 * Test backward compatibility with single-series y-axis format
 	 */
 	public function testBackwardCompatibilitySingleSeries() {

@@ -977,6 +977,14 @@ class RiskiToolsHooks {
             $attributes['data-y-label'] = $config['y-label'];
         }
 
+        // Add optional y-axis range if provided
+        if (isset($config['y-min'])) {
+            $attributes['data-y-min'] = (string)$config['y-min'];
+        }
+        if (isset($config['y-max'])) {
+            $attributes['data-y-max'] = (string)$config['y-max'];
+        }
+
         // Add fixed parameter data attributes
         foreach ($fixedParams as $key => $value) {
             $attributes['data-' . $key] = $value;
@@ -1068,6 +1076,17 @@ class RiskiToolsHooks {
                 return ['error' => "$key must be a numeric value, got: " . $config[$key]];
             }
             $config[$key] = (float)$config[$key];
+        }
+
+        // Validate optional y-axis range values
+        $optionalNumerics = ['y-min', 'y-max'];
+        foreach ($optionalNumerics as $key) {
+            if (isset($config[$key])) {
+                if (!is_numeric($config[$key])) {
+                    return ['error' => "$key must be a numeric value, got: " . $config[$key]];
+                }
+                $config[$key] = (float)$config[$key];
+            }
         }
 
         // Validate: must have either y-axis or series (but not required to have both)
