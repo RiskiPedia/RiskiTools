@@ -2,6 +2,10 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'ext.risk
     'use strict';
 
     function matchPlaceholders(input) {
+        // Strip out content inside nested tags that have their own placeholder handling
+        // (any <risk...> tag) so we don't try to resolve their internal placeholders
+        const strippedInput = input.replace(/<(risk[a-z]*)[^>]*>[\s\S]*?<\/\1>/gi, '');
+
         // Regex:
         // \{         - Literal {
         // ([a-zA-Z0-9_]+) - Capture group 1: letters, numbers, underscore
@@ -9,14 +13,14 @@ mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'ext.risk
         const regex = /\{([a-zA-Z0-9_]+)\}/g;
 
         // Use matchAll to get an iterator of all matches
-        const matches = input.matchAll(regex);
+        const matches = strippedInput.matchAll(regex);
 
         const placeholders = new Set();
         for (const match of matches) {
             // check for {{ and }} to avoid matching templates
-            const doubleFirst = (match.index > 0) && (input[match.index - 1] == '{');
-            const doubleLast = (match.index + match[0].length < input.length) && // Check length before indexing
-                (input[match.index + match[0].length] == '}');
+            const doubleFirst = (match.index > 0) && (strippedInput[match.index - 1] == '{');
+            const doubleLast = (match.index + match[0].length < strippedInput.length) && // Check length before indexing
+                (strippedInput[match.index + match[0].length] == '}');
             if (!(doubleFirst && doubleLast)) {
                 placeholders.add(match[1]); // Add the captured group (the name)
             }
