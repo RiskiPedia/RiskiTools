@@ -145,10 +145,12 @@ class ApiRiskParse extends ApiBase {
         $startIndex += strlen( $marker );
 
         $endIndex = strrpos( $html, $marker );
-        if ( $endIndex === false || $endIndex <= $startIndex ) {
+        if ( $endIndex === false || $endIndex < $startIndex ) {
             return $html; // End marker not found or in wrong place
         }
 
+        // When $endIndex === $startIndex, the content between markers is empty,
+        // which is a valid result (e.g., when #ifexpr evaluates to nothing)
         return substr( $html, $startIndex, $endIndex - $startIndex );
     }
 
