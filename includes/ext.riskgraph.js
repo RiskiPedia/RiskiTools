@@ -338,11 +338,9 @@
 	}
 
 	// Hook into MediaWiki events
+	// Note: ext.riskgraph.chartjs is already a dependency, so Chart.js is loaded
 	mw.hook( 'wikipage.content' ).add( function ( $content ) {
-		// Wait for Chart.js to load
-		mw.loader.using( 'ext.riskgraph.chartjs' ).then( function () {
-			initGraphs( $content );
-		} );
+		initGraphs( $content );
 	} );
 
 	// Listen for pagestate changes
