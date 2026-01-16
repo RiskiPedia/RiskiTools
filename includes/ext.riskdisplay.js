@@ -1,4 +1,4 @@
-mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'oojs-ui'], function () {
+mw.loader.using(['ext.riskutils', 'ext.dropdown', 'ext.riskparameter', 'ext.riskgraph', 'oojs-ui'], function () {
     'use strict';
 
     function matchPlaceholders(input) {
