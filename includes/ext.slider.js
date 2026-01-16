@@ -37,7 +37,7 @@ mw.loader.using( [ 'ext.pagestate','ext.riskutils' ] ).then( function () {
             if (statevar) {
                 $slider.on( 'change', function () {
                     var val = this.value;
-                    RT.pagestate.setPageState(statevar, val);
+                    RT.pagestate.setUserChoice(statevar, val); // User choice - updates URL hash
                 } );
             }
             // Initial data exposure

@@ -111,10 +111,12 @@
         "localBasePath": "tests/qunit",
         "remoteExtPath": "RiskiTools/tests/qunit",
         "scripts": [
-            "ext.riskgraph.test.js"
+            "ext.riskgraph.test.js",
+            "ext.pagestate.urlhash.test.js"
         ],
         "dependencies": [
-            "ext.riskgraph"
+            "ext.riskgraph",
+            "ext.pagestate"
         ]
     },
     "manifest_version": 2

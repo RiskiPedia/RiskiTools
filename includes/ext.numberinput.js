@@ -24,7 +24,7 @@ mw.loader.using(['ext.pagestate', 'ext.riskutils']).then(function () {
                 // Queue initial value for batch set
                 initialState[name] = currentValue;
             }
-            // Save on change (blur, Enter, arrows)
+            // Save on change (blur, Enter, arrows) - user interaction
             $input.on('change', function () {
                 if (this.value != "") {
                     if (this.value < $input.attr('min')) {
@@ -32,7 +32,7 @@ mw.loader.using(['ext.pagestate', 'ext.riskutils']).then(function () {
                     } else if (this.value > $input.attr('max')) {
                         this.value = $input.attr('max');
                     }
-                    RT.pagestate.setPageState(name, this.value);
+                    RT.pagestate.setUserChoice(name, this.value); // User choice - updates URL hash
                 } else {
                     RT.pagestate.deletePageState(name);
                 }

@@ -71,10 +71,14 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
         const iconWidth = 20; // Dropdown arrow
         dd.$element.css('width', `${maxWidth + padding + iconWidth}px`);
 
-        // Update pagestate when value changes
-        dd.getMenu().on('select', function (item) {
+        // Update pagestate when user chooses a value (not programmatic selection)
+        // 'choose' event only fires on actual user interaction (click/keyboard)
+        dd.getMenu().on('choose', function (item) {
             const row = JSON.parse(item.getData());
-            RT.pagestate.setPageStates(row); // This one is NOT silent
+            // Set all row values in pagestate (for calculations)
+            RT.pagestate.setPageStates(row);
+            // Mark only the selection key as a user choice (for URL)
+            RT.pagestate.setUserChoice(selectionkey, row[selectionkey]);
         });
 
         // Manually attach the widget instance so we can find it later
@@ -160,7 +164,7 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
                     if (matchByLabel) {
                         // Check if this isn't already the selected item
                         if (dd.getMenu().findSelectedItem() !== matchByLabel) {
-                            // Update the UI only
+                            // Update the UI only (selectItem won't trigger 'choose' event)
                             dd.getMenu().selectItem(matchByLabel);
                             dd.setLabel(matchByLabel.getLabel());
                         }
@@ -176,6 +180,7 @@ mw.loader.using(['ext.riskutils', 'oojs-ui', 'ext.pagestate'], function () {
                     // Check if an item is currently selected
                     if (dd.getMenu().findSelectedItem() !== null) {
                         // Clear selection and reset label to original title
+                        // (selectItem won't trigger 'choose' event)
                         dd.getMenu().selectItem(null);
                         dd.setLabel(originalTitle);
                     }
