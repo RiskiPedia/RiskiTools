@@ -21,6 +21,9 @@
         "ext.pagestate": {
             "scripts": [
                 "extensions/RiskiTools/includes/ext.pagestate.js"
+            ],
+            "dependencies": [
+                "ext.riskutils"
             ]
         },
         "ext.dropdown": {
